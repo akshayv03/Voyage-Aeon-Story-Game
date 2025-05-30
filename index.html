@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voyage Aeon - Interactive Space Adventure</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1> 🚀Voyage Aeon🪐</h1>
+            <div class="controls">
+                <button id="stopBtn" class="stop-btn">🛑 Stop Mission</button>
+                <button id="musicToggle" class="music-btn">🎵 Music Loading...</button>
+                <button id="restartBtn" class="restart-btn">🔄 Restart</button>
+            </div>
+        </header>
+
+        <main>
+            <div id="storyContainer" class="story-container">
+                <div id="storyText" class="story-text">
+                    <p>Welcome to Voyage Aeon, where the mysteries of the cosmos await your discovery...</p>
+                    <p>Click "Begin Mission" to start your space adventure!</p>
+                </div>
+
+                <div id="choicesContainer" class="choices-container">
+                    <button class="choice-btn" onclick="startStory()"> Begin Mission</button>
+                </div>
+            </div>
+
+            <!-- Action Screen for visual transitions -->
+            <div id="actionScreen" class="action-screen hidden">
+                <div class="action-content">
+                    <div id="actionAnimation" class="action-animation">
+                        <div id="actionIcon" class="action-icon">🚀</div>
+                        <div id="actionText" class="action-text">Performing action...</div>
+                        <div class="loading-bar">
+                            <div id="loadingProgress" class="loading-progress"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="gameOverScreen" class="game-over hidden">
+                <div class="end-screen-header">
+                    <h2>🌟 Mission Complete 🌟</h2>
+                    <div id="endingBadge" class="ending-badge">
+                        <span id="endingIcon">🏆</span>
+                        <span id="endingTitle">Mission Accomplished</span>
+                    </div>
+                </div>
+
+                <div class="end-screen-content">
+                    <p id="gameOverText">Thank you for playing!</p>
+                </div>
+
+                <div class="end-screen-actions">
+                    <button onclick="restartStory()" class="choice-btn primary-btn">🚀 Play Again</button>
+                    <button onclick="game.shareResults()" class="choice-btn secondary-btn">📤 Share Results</button>
+                    <button onclick="game.viewStats()" class="choice-btn secondary-btn">📊 View Statistics</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="pathIndicator" class="path-indicator">
+                <span id="pathIcon">🧭</span>
+                <span id="pathText">Ready for Mission</span>
+            </div>
+
+        </footer>
+    </div>
+
+    <audio id="backgroundMusic" loop>
+        <source src="audio/suspense-sci-fi-underscore-music-loop-300215 (1).mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <audio id="typingSound" loop>
+        <source src="audio/Text Typing.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <audio id="endSceneSound">
+        <source src="audio/End Scene Sound Effect.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script src="script.js"></script>
+</body>
+</html>

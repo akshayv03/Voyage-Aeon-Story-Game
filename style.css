@@ -1,0 +1,503 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Georgia', serif;
+    background: linear-gradient(135deg, #0a0a2e 0%, #16213e 50%, #0f0f23 100%);
+    color: #e0e6ff;
+    min-height: 100vh;
+    line-height: 1.6;
+    position: relative;
+    overflow-x: hidden;
+    transition: background 1s ease;
+}
+
+/* Dynamic background themes based on story path */
+body.explorer-path {
+    background: linear-gradient(135deg, #1a0a2e 0%, #2e1a3e 50%, #1a0f23 100%);
+}
+
+body.diplomatic-path {
+    background: linear-gradient(135deg, #0a2e1a 0%, #1a3e2e 50%, #0f231a 100%);
+}
+
+body.scientist-path {
+    background: linear-gradient(135deg, #2e1a0a 0%, #3e2e1a 50%, #231a0f 100%);
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(2px 2px at 20px 30px, #ffffff, transparent),
+        radial-gradient(2px 2px at 40px 70px, #ffffff, transparent),
+        radial-gradient(1px 1px at 90px 40px, #ffffff, transparent),
+        radial-gradient(1px 1px at 130px 80px, #ffffff, transparent),
+        radial-gradient(2px 2px at 160px 30px, #ffffff, transparent);
+    background-repeat: repeat;
+    background-size: 200px 100px;
+    opacity: 0.3;
+    z-index: -1;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header styles */
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+}
+
+header h1 {
+    font-size: 2.5em;
+    color: #00d4ff;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5), 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin-bottom: 15px;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.stop-btn, .music-btn, .restart-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.stop-btn {
+    background: #ff6b6b;
+    color: white;
+}
+
+.stop-btn:hover {
+    background: #ff5252;
+    transform: translateY(-2px);
+}
+
+.music-btn {
+    background: #7c4dff;
+    color: white;
+}
+
+.music-btn:hover {
+    background: #651fff;
+    transform: translateY(-2px);
+}
+
+.restart-btn {
+    background: #00bcd4;
+    color: white;
+}
+
+.restart-btn:hover {
+    background: #0097a7;
+    transform: translateY(-2px);
+}
+
+/* Main content */
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.story-container {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    flex: 1;
+    transition: border-color 0.5s ease, background 0.5s ease;
+}
+
+/* Dynamic story container styling based on path */
+.explorer-path .story-container {
+    border: 1px solid rgba(229, 30, 136, 0.3);
+    background: rgba(229, 30, 136, 0.05);
+}
+
+.diplomatic-path .story-container {
+    border: 1px solid rgba(30, 229, 136, 0.3);
+    background: rgba(30, 229, 136, 0.05);
+}
+
+.scientist-path .story-container {
+    border: 1px solid rgba(229, 136, 30, 0.3);
+    background: rgba(229, 136, 30, 0.05);
+}
+
+.story-text {
+    font-size: 1.2em;
+    margin-bottom: 30px;
+    text-align: justify;
+    line-height: 1.8;
+}
+
+.story-text p {
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.choices-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+}
+
+.choice-btn {
+    background: linear-gradient(45deg, #1e88e5, #42a5f5);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 30px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 250px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.choice-btn:hover {
+    background: linear-gradient(45deg, #42a5f5, #1e88e5);
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(30, 136, 229, 0.4);
+}
+
+.choice-btn:active {
+    transform: translateY(-1px);
+}
+
+/* Game over screen */
+.game-over {
+    text-align: left;
+    background: rgba(0, 0, 0, 0.95);
+    border-radius: 20px;
+    padding: 0;
+    backdrop-filter: blur(15px);
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+}
+
+.end-screen-header {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(30, 136, 229, 0.2));
+    padding: 30px;
+    border-radius: 20px 20px 0 0;
+    text-align: center;
+    border-bottom: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.game-over h2 {
+    font-size: 2.5em;
+    color: #00d4ff;
+    margin-bottom: 20px;
+    text-shadow: 0 0 15px rgba(0, 212, 255, 0.7), 2px 2px 4px rgba(0, 0, 0, 0.5);
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 15px rgba(0, 212, 255, 0.7), 2px 2px 4px rgba(0, 0, 0, 0.5); }
+    to { text-shadow: 0 0 25px rgba(0, 212, 255, 1), 2px 2px 4px rgba(0, 0, 0, 0.5); }
+}
+
+.ending-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 212, 255, 0.1);
+    padding: 15px 25px;
+    border-radius: 50px;
+    border: 2px solid rgba(0, 212, 255, 0.4);
+    margin-top: 10px;
+}
+
+.ending-badge #endingIcon {
+    font-size: 1.5em;
+}
+
+.ending-badge #endingTitle {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #00d4ff;
+}
+
+.end-screen-content {
+    padding: 30px;
+}
+
+.game-over p {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+    color: #e0e6ff;
+    white-space: pre-line;
+    margin-bottom: 10px;
+}
+
+/* Style for the mission report sections */
+.end-screen-content p:last-child {
+    background: rgba(0, 212, 255, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid #00d4ff;
+    margin-top: 20px;
+}
+
+.end-screen-actions {
+    padding: 20px 30px 30px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    border-top: 1px solid rgba(0, 212, 255, 0.2);
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 0 0 20px 20px;
+}
+
+.primary-btn {
+    background: linear-gradient(45deg, #1e88e5, #00d4ff) !important;
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4) !important;
+}
+
+.secondary-btn {
+    background: linear-gradient(45deg, #424242, #616161) !important;
+    color: #e0e6ff !important;
+}
+
+.secondary-btn:hover {
+    background: linear-gradient(45deg, #616161, #757575) !important;
+    transform: translateY(-2px);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Footer */
+footer {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.progress-bar {
+    background: rgba(255, 255, 255, 0.2);
+    height: 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background: linear-gradient(90deg, #1e88e5, #00d4ff);
+    height: 100%;
+    width: 0%;
+    transition: width 0.5s ease, background 0.5s ease;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+/* Dynamic progress bar colors based on story path */
+.explorer-path .progress-fill {
+    background: linear-gradient(90deg, #e51e88, #ff00d4);
+    box-shadow: 0 0 10px rgba(229, 30, 136, 0.3);
+}
+
+.diplomatic-path .progress-fill {
+    background: linear-gradient(90deg, #1ee588, #00ffd4);
+    box-shadow: 0 0 10px rgba(30, 229, 136, 0.3);
+}
+
+.scientist-path .progress-fill {
+    background: linear-gradient(90deg, #e5881e, #ffd400);
+    box-shadow: 0 0 10px rgba(229, 136, 30, 0.3);
+}
+
+.path-indicator {
+    text-align: center;
+    margin: 10px 0;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+    transition: all 0.5s ease;
+}
+
+.path-indicator #pathIcon {
+    font-size: 1.2em;
+    margin-right: 8px;
+}
+
+.path-indicator #pathText {
+    font-size: 0.9em;
+    font-weight: bold;
+}
+
+/* Dynamic path indicator styling */
+.explorer-path .path-indicator {
+    background: rgba(229, 30, 136, 0.2);
+    color: #ff9ec7;
+}
+
+.diplomatic-path .path-indicator {
+    background: rgba(30, 229, 136, 0.2);
+    color: #9effc7;
+}
+
+.scientist-path .path-indicator {
+    background: rgba(229, 136, 30, 0.2);
+    color: #ffc79e;
+}
+
+/* Action Screen for visual transitions */
+.action-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a2e 0%, #16213e 50%, #0f0f23 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.5s ease;
+}
+
+.action-content {
+    text-align: center;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 20px;
+    padding: 60px;
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.2);
+    max-width: 500px;
+    width: 90%;
+}
+
+.action-animation {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+.action-icon {
+    font-size: 4em;
+    animation: actionPulse 2s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.7));
+}
+
+@keyframes actionPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.action-text {
+    font-size: 1.5em;
+    color: #00d4ff;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+    min-height: 2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.loading-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #1e88e5, #00d4ff);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.1s ease;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
+
+/* Action screen variations for different choice types */
+.action-screen.explorer-action {
+    background: linear-gradient(135deg, #1a0a2e 0%, #2e1a3e 50%, #1a0f23 100%);
+}
+
+.action-screen.diplomatic-action {
+    background: linear-gradient(135deg, #0a2e1a 0%, #1a3e2e 50%, #0f231a 100%);
+}
+
+.action-screen.scientist-action {
+    background: linear-gradient(135deg, #2e1a0a 0%, #3e2e1a 50%, #231a0f 100%);
+}
+
+.credits {
+    color: #b3d9ff;
+    font-style: italic;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+
+    header h1 {
+        font-size: 2em;
+    }
+
+    .story-text {
+        font-size: 1.1em;
+    }
+
+    .choice-btn {
+        min-width: 200px;
+        font-size: 1em;
+    }
+
+    .controls {
+        gap: 10px;
+    }
+
+    .stop-btn, .music-btn, .restart-btn {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+}
