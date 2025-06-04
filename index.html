@@ -1,4 +1,17 @@
 <!DOCTYPE html>
+<!--
+    Voyage Aeon - Interactive Space Adventure
+
+    An interactive story game featuring:
+    - Branching narrative with multiple endings
+    - Dynamic visual themes based on player choices
+    - Audio integration with background music and sound effects
+    - Corner-positioned navigation controls
+    - Responsive design for all devices
+
+    @author FBLA Project Team
+    @version 1.0
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -71,23 +84,32 @@
                 <span id="pathIcon">🧭</span>
                 <span id="pathText">Ready for Mission</span>
             </div>
-
         </footer>
+
+        <!-- Navigation Arrow Buttons - Fixed positioned at screen corners -->
+        <div id="navigationControls" class="navigation-controls">
+            <button id="prevBtn" class="nav-btn nav-prev" title="Previous Scene">
+                <span class="nav-arrow">◀</span>
+                <span class="nav-text">Previous</span>
+            </button>
+            <button id="nextBtn" class="nav-btn nav-next" title="Next Scene">
+                <span class="nav-text">Next</span>
+                <span class="nav-arrow">▶</span>
+            </button>
+        </div>
     </div>
 
     <audio id="backgroundMusic" loop>
         <source src="audio/suspense-sci-fi-underscore-music-loop-300215 (1).mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
     </audio>
 
     <audio id="typingSound" loop>
         <source src="audio/Text Typing.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
     </audio>
 
     <audio id="endSceneSound">
         <source src="audio/End Scene Sound Effect.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
+
     </audio>
 
     <script src="script.js"></script>

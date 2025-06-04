@@ -1,106 +1,107 @@
-// Interactive Story Game Logic
+/**
+ * Voyage Aeon Interactive Story Game
+ *
+ * A space-themed interactive story game featuring:
+ * - Branching narrative with multiple endings
+ * - Dynamic visual feedback based on player choices
+ * - Audio integration with background music and sound effects
+ * - Navigation system for revisiting previous scenes
+ * - Progress tracking and detailed mission reports
+ *
+ * @author FBLA Project Team
+ * @version 1.0
+ */
 class VoyageAeonStory {
+    /**
+     * Initialize the interactive story game
+     * Sets up all game state variables and initializes core systems
+     */
     constructor() {
-        this.currentScene = 'start';
-        this.choices = [];
-        this.choiceDetails = []; // Store detailed choice information
-        this.musicPlaying = false;
-        this.storyProgress = 0;
-        this.maxProgress = 15;
-        this.finalEnding = '';
-        this.gameStarted = false; // Track if game has actually started
+        // Core game state variables
+        this.currentScene = 'start';           // Current story scene identifier
+        this.choices = [];                     // Array of player choice keys
+        this.choiceDetails = [];               // Detailed choice information for reports
+        this.musicPlaying = false;             // Background music state
+        this.storyProgress = 0;                // Current progress (0-15)
+        this.maxProgress = 15;                 // Maximum story progression steps
+        this.finalEnding = '';                 // Final ending achievement name
 
-        this.initializeElements();
-        this.setupEventListeners();
-        this.loadStoryData();
-        this.ensureActionScreenHidden();
-        this.initializeMusic(); // Start music immediately when game loads
+        // Navigation system variables
+        this.sceneHistory = [];                // Array of visited scene keys
+        this.currentHistoryIndex = -1;         // Current position in scene history
+
+        // Initialize all game systems
+        this.initializeElements();             // Get DOM element references
+        this.setupEventListeners();            // Attach event handlers
+        this.loadStoryData();                  // Load story content and structure
+        this.ensureActionScreenHidden();       // Hide action screen initially
+        this.initializeMusic();                // Set up audio system
+        this.initializeNavigation();           // Initialize navigation controls
     }
 
+    /**
+     * Initialize all DOM element references
+     * Gets references to all HTML elements needed for game functionality
+     */
     initializeElements() {
-        // Initialize all DOM elements with error checking
+        // Story display elements
         this.storyText = document.getElementById('storyText');
         this.choicesContainer = document.getElementById('choicesContainer');
+        this.storyContainer = document.getElementById('storyContainer');
+
+        // Game over screen elements
         this.gameOverScreen = document.getElementById('gameOverScreen');
         this.gameOverText = document.getElementById('gameOverText');
+        this.endingIcon = document.getElementById('endingIcon');
+        this.endingTitle = document.getElementById('endingTitle');
+
+        // Audio elements
         this.backgroundMusic = document.getElementById('backgroundMusic');
         this.typingSound = document.getElementById('typingSound');
         this.endSceneSound = document.getElementById('endSceneSound');
+
+        // Control buttons
         this.musicToggle = document.getElementById('musicToggle');
         this.stopBtn = document.getElementById('stopBtn');
         this.restartBtn = document.getElementById('restartBtn');
+        this.prevBtn = document.getElementById('prevBtn');
+        this.nextBtn = document.getElementById('nextBtn');
+        this.navigationControls = document.getElementById('navigationControls');
+
+        // Progress and visual feedback elements
         this.progressFill = document.getElementById('progressFill');
-        this.pathIndicator = document.getElementById('pathIndicator');
         this.pathIcon = document.getElementById('pathIcon');
         this.pathText = document.getElementById('pathText');
-        this.endingBadge = document.getElementById('endingBadge');
-        this.endingIcon = document.getElementById('endingIcon');
-        this.endingTitle = document.getElementById('endingTitle');
+
+        // Action screen elements for visual transitions
         this.actionScreen = document.getElementById('actionScreen');
         this.actionIcon = document.getElementById('actionIcon');
         this.actionText = document.getElementById('actionText');
         this.loadingProgress = document.getElementById('loadingProgress');
-        this.storyContainer = document.getElementById('storyContainer');
-
-        // Check if critical elements exist
-        if (!this.storyText || !this.choicesContainer) {
-            console.error('Critical game elements not found!');
-            return false;
-        }
-        return true;
     }
 
+    /**
+     * Set up all event listeners and audio properties
+     * Configures button click handlers and audio settings
+     */
     setupEventListeners() {
+        // Button event listeners
         this.stopBtn.addEventListener('click', () => this.stopStory());
         this.musicToggle.addEventListener('click', () => this.toggleMusic());
         this.restartBtn.addEventListener('click', () => this.restartStory());
+        this.prevBtn.addEventListener('click', () => this.navigatePrevious());
+        this.nextBtn.addEventListener('click', () => this.navigateNext());
 
-        // Set initial music volume and properties with error checking
-        if (this.backgroundMusic) {
-            this.backgroundMusic.volume = 0.3;
-            this.backgroundMusic.loop = true;
-        }
+        // Configure audio properties
+        this.backgroundMusic.volume = 0.3;        // Background music at 30% volume
+        this.backgroundMusic.loop = true;         // Loop background music continuously
+        this.typingSound.volume = 0.4;            // Typing sound at 40% volume (louder than music)
+        this.typingSound.loop = true;             // Loop typing sound while typing
+        this.endSceneSound.volume = 0.7;          // End scene sound at 70% volume
+        this.endSceneSound.loop = false;          // Play end scene sound once
 
-        // Set up typing sound properties with error checking
-        if (this.typingSound) {
-            this.typingSound.volume = 0.4; // Higher volume for typing sound prominence
-            this.typingSound.loop = true;
-        }
-
-        // Set up end scene sound properties with error checking
-        if (this.endSceneSound) {
-            this.endSceneSound.volume = 0.7; // Higher volume for dramatic impact
-            this.endSceneSound.loop = false; // Play once when game ends
-        }
-
-        // Store original background music volume for restoration
+        // Store original music volume for restoration after sound effects
         this.originalMusicVolume = 0.3;
-
-        // Add event listeners for music state management with error checking
-        if (this.backgroundMusic) {
-            this.backgroundMusic.addEventListener('ended', () => {
-                // Ensure music loops even if loop attribute fails
-                if (this.musicPlaying && this.backgroundMusic) {
-                    this.backgroundMusic.currentTime = 0;
-                    this.backgroundMusic.play().catch(() => {
-                        // Handle play failure silently
-                    });
-                }
-            });
-
-            this.backgroundMusic.addEventListener('pause', () => {
-                if (this.musicPlaying && this.backgroundMusic) {
-                    // If music was paused but should be playing, restart it
-                    setTimeout(() => {
-                        if (this.musicPlaying && this.backgroundMusic) {
-                            this.backgroundMusic.play().catch(() => {
-                                // Handle play failure silently
-                            });
-                        }
-                    }, 100);
-                }
-            });
-        }
     }
 
     loadStoryData() {
@@ -247,105 +248,7 @@ class VoyageAeonStory {
                 ]
             },
 
-            dockStation: {
-                text: `Your ship's docking clamps engage with the ancient station with a satisfying thunk. As you board,
-                       emergency lighting flickers to life, revealing corridors lined with the same crystalline growths.
 
-                       The crystals pulse in rhythm with your heartbeat, and you realize they're not just decorative -
-                       they're some kind of organic technology, still alive after eons in space.`,
-                choices: [
-                    { text: "🔬 Study the living crystal technology", next: "crystalTechEnding" }
-                ]
-            },
-
-            peacefulContact: {
-                text: `You transmit universal peace symbols and mathematical sequences. The alien probe responds immediately,
-                       projecting a holographic interface that adapts to your ship's systems.
-
-                       Through the interface, an ancient AI consciousness speaks: "Greetings, young species. We have waited
-                       long for others to find us. We offer you the gift of knowledge."`,
-                choices: [
-                    { text: "🎓 Accept the ancient knowledge", next: "knowledgeEnding" }
-                ]
-            },
-
-            consultAI: {
-                text: `Your AI companion processes the data for several minutes before responding:
-                       "Captain, this civilization predates known galactic history. Their technology appears to be
-                       based on consciousness itself - they've learned to merge mind and machine."
-
-                       "I recommend extreme caution, but also... I sense an opportunity for unprecedented discovery."`,
-                choices: [
-                    { text: "🧠 Investigate the consciousness technology", next: "consciousnessEnding" }
-                ]
-            },
-
-            scanCrystals: {
-                text: `Your ship's sensors reveal that the crystalline formations are not just decorative - they're alive!
-                       The crystals form a vast neural network spanning the entire station, pulsing with bio-electric energy.
-
-                       As you scan deeper, the crystals begin to respond to your presence, their glow intensifying.
-                       You realize they're trying to communicate with you.`,
-                choices: [
-                    { text: "🔬 Study the living crystal technology", next: "crystalTechEnding" }
-                ]
-            },
-
-            hailStation: {
-                text: `You broadcast on all frequencies, trying to make contact with the station. For long minutes, there's
-                       only static. Then, suddenly, a response comes - not through your radio, but directly into your mind.
-
-                       "Welcome, young traveler. We have been waiting for someone like you for millennia.
-                       Will you accept our gift of knowledge?"`,
-                choices: [
-                    { text: "🎓 Accept the ancient knowledge", next: "knowledgeEnding" }
-                ]
-            },
-
-            defensivePosture: {
-                text: `Your shields flare to life just as the alien probe begins scanning your ship. The probe seems to
-                       interpret your defensive stance as a sign of intelligence rather than hostility.
-
-                       It projects a holographic message: "Caution is wisdom. We respect your prudence, young species.
-                       We offer knowledge to those who show both courage and wisdom."`,
-                choices: [
-                    { text: "🎓 Accept the ancient knowledge", next: "knowledgeEnding" }
-                ]
-            },
-
-            analyzeTech: {
-                text: `Your ship's computers work overtime analyzing the probe's technology. The results are astounding -
-                       this technology is based on principles of physics you've never seen before.
-
-                       The probe seems pleased by your scientific curiosity and begins transmitting technical data
-                       directly to your computers. You've just received the greatest scientific discovery in human history!`,
-                choices: [
-                    { text: "🎓 Accept the ancient knowledge", next: "knowledgeEnding" }
-                ]
-            },
-
-            researchAncients: {
-                text: `You dive deep into your ship's databases, cross-referencing the energy signatures with known
-                       archaeological data. What you find sends chills down your spine.
-
-                       This matches theoretical models of the "Precursors" - a mythical race that supposedly
-                       seeded the galaxy with consciousness itself. If this is real, you've found the origin of all sentient life.`,
-                choices: [
-                    { text: "🧠 Investigate the consciousness technology", next: "consciousnessEnding" }
-                ]
-            },
-
-            investigateEnergy: {
-                text: `You direct your ship toward the energy source, following the readings deeper into space.
-                       The energy signature leads you to what appears to be empty space, but your instruments detect
-                       something impossible - a structure that exists partially outside normal dimensions.
-
-                       As you approach, reality seems to bend around you. You're no longer just exploring space -
-                       you're exploring the very fabric of consciousness itself.`,
-                choices: [
-                    { text: "🧠 Investigate the consciousness technology", next: "consciousnessEnding" }
-                ]
-            },
 
             crystalTechEnding: {
                 text: `As you study the living crystals, they respond to your presence, sharing their knowledge directly
@@ -477,69 +380,75 @@ class VoyageAeonStory {
 
                        Impressed by their wisdom, you accept a role as their first human liaison, becoming the Interspecies Diplomatic Coordinator!`,
                 choices: []
+            },
+
+            civilizationEnding: {
+                text: `The ancient AI shares the fascinating history of their civilization - the Ethereal Architects who built this station eons ago.
+
+                       They were a peaceful species who transcended physical form to become pure consciousness, leaving behind these stations as gifts for younger civilizations. You learn about their philosophy, their technology, and their hope for the future of the galaxy.
+
+                       You have become the first human Civilization Historian, keeper of ancient wisdom and cultural knowledge!`,
+                choices: []
             }
         };
     }
 
     initializeMusic() {
-        // Try to start music immediately when the page loads
-        // This provides ambient music from the very beginning
         this.tryPlayMusic();
 
-        // Also try to play music when user first interacts with the page
+        // Try to play music when user first interacts with the page
         const startMusicOnInteraction = () => {
             if (!this.musicPlaying) {
                 this.tryPlayMusic();
             }
-            // Remove the event listeners after first interaction
             document.removeEventListener('click', startMusicOnInteraction);
-            document.removeEventListener('keydown', startMusicOnInteraction);
-            document.removeEventListener('touchstart', startMusicOnInteraction);
         };
 
-        // Add event listeners for user interaction
         document.addEventListener('click', startMusicOnInteraction);
-        document.addEventListener('keydown', startMusicOnInteraction);
-        document.addEventListener('touchstart', startMusicOnInteraction);
     }
 
     startStory() {
-        this.gameStarted = true;
         this.currentScene = 'start';
         this.storyProgress = 1;
         this.updateProgress();
+
+        // Reset navigation for new story
+        this.sceneHistory = [];
+        this.currentHistoryIndex = -1;
+
         this.displayScene('start');
         this.tryPlayMusic();
     }
 
-    displayScene(sceneKey) {
+    displayScene(sceneKey, addToHistory = true) {
         const scene = this.storyData[sceneKey];
-        if (!scene) {
-            console.error('No scene found for key:', sceneKey);
-            return;
+        this.currentScene = sceneKey;
+
+        // Add to history if this is a new scene (not navigation)
+        if (addToHistory) {
+            // Remove any scenes after current position (if user went back and chose different path)
+            this.sceneHistory = this.sceneHistory.slice(0, this.currentHistoryIndex + 1);
+            // Add new scene to history
+            this.sceneHistory.push(sceneKey);
+            this.currentHistoryIndex = this.sceneHistory.length - 1;
         }
 
-        this.currentScene = sceneKey;
+        // Update navigation buttons
+        this.updateNavigationButtons();
 
         // Update story text with typewriter effect
         this.typewriterEffect(scene.text);
 
         // Clear and populate choices
         setTimeout(() => {
-            if (!this.choicesContainer) {
-                console.error('choicesContainer not found!');
-                return;
-            }
-
             this.choicesContainer.innerHTML = '';
 
             if (scene.choices.length === 0) {
-                // Story ending - capture the final ending
+                // Story ending
                 this.finalEnding = this.getEndingName(sceneKey);
-                // Delay showing game over to let final text finish typing
                 setTimeout(() => {
                     this.showGameOver();
-                }, 3000); // Wait 3 seconds for dramatic effect
+                }, 3000);
             } else {
                 scene.choices.forEach((choice, index) => {
                     setTimeout(() => {
@@ -654,30 +563,15 @@ class VoyageAeonStory {
 
     tryPlayMusic() {
         if (!this.musicPlaying && this.backgroundMusic) {
-            try {
-                // Ensure music is ready to play with correct volume
-                this.backgroundMusic.currentTime = 0;
-                this.backgroundMusic.volume = this.originalMusicVolume;
+            this.backgroundMusic.currentTime = 0;
+            this.backgroundMusic.volume = this.originalMusicVolume;
 
-                this.backgroundMusic.play().then(() => {
-                    // Music started successfully
-                    this.musicPlaying = true;
-                    if (this.musicToggle) {
-                        this.musicToggle.textContent = '🔊 Music On';
-                    }
-                }).catch(_e => {
-                    // Music autoplay prevented by browser - this is normal
-                    // Music will start when user interacts with the page
-                    if (this.musicToggle) {
-                        this.musicToggle.textContent = '🔇 Music Off';
-                    }
-                });
-            } catch (error) {
-                console.log('Music play error:', error);
-                if (this.musicToggle) {
-                    this.musicToggle.textContent = '🔇 Music Off';
-                }
-            }
+            this.backgroundMusic.play().then(() => {
+                this.musicPlaying = true;
+                this.musicToggle.textContent = '🔊 Music On';
+            }).catch(() => {
+                this.musicToggle.textContent = '🔇 Music Off';
+            });
         }
     }
 
@@ -690,84 +584,53 @@ class VoyageAeonStory {
             this.backgroundMusic.play().then(() => {
                 this.musicPlaying = true;
                 this.musicToggle.textContent = '🔊 Music On';
-            }).catch(_e => {
-                // Handle play failure
+            }).catch(() => {
                 this.musicToggle.textContent = '🔇 Music Off';
             });
         }
     }
 
     startTypingSound() {
-        // Start typing sound effect and lower background music
         if (this.typingSound) {
-            // Lower background music volume when typing
             if (this.backgroundMusic && this.musicPlaying) {
-                this.fadeBackgroundMusic(0.1, 200); // Fade to 10% volume quickly
+                this.backgroundMusic.volume = 0.1; // Lower background music
             }
-
             this.typingSound.currentTime = 0;
-            this.typingSound.play().catch(_e => {
-                // Handle play failure silently
-            });
+            this.typingSound.play().catch(() => {});
         }
     }
 
     stopTypingSound() {
-        // Stop typing sound effect and restore background music volume
         if (this.typingSound) {
             this.typingSound.pause();
             this.typingSound.currentTime = 0;
-
-            // Restore background music volume when typing stops
             if (this.backgroundMusic && this.musicPlaying) {
-                this.fadeBackgroundMusic(this.originalMusicVolume, 500); // Fade back to normal volume
+                this.backgroundMusic.volume = this.originalMusicVolume; // Restore volume
             }
         }
     }
 
-    fadeBackgroundMusic(targetVolume, duration = 1000) {
-        // Fade background music to target volume over specified duration
-        if (!this.backgroundMusic || !this.musicPlaying) return;
-
-        const startVolume = this.backgroundMusic.volume;
-        const volumeChange = targetVolume - startVolume;
-        const steps = 20; // Number of fade steps
-        const stepDuration = duration / steps;
-        const stepChange = volumeChange / steps;
-
-        let currentStep = 0;
-
-        const fadeInterval = setInterval(() => {
-            currentStep++;
-            const newVolume = startVolume + (stepChange * currentStep);
-            this.backgroundMusic.volume = Math.max(0, Math.min(1, newVolume));
-
-            if (currentStep >= steps) {
-                clearInterval(fadeInterval);
-                this.backgroundMusic.volume = targetVolume;
-            }
-        }, stepDuration);
-    }
-
     playEndSceneSound() {
-        // Play end scene sound effect with background music ducking
         if (this.endSceneSound) {
-            // Fade background music down for dramatic effect
-            this.fadeBackgroundMusic(0.1, 500); // Fade to 10% volume over 0.5 seconds
+            if (this.backgroundMusic && this.musicPlaying) {
+                this.backgroundMusic.volume = 0.1; // Lower background music
+            }
 
             this.endSceneSound.currentTime = 0;
             this.endSceneSound.play().then(() => {
-                // Set up event listener to restore background music when end sound finishes
                 const restoreMusic = () => {
-                    this.fadeBackgroundMusic(this.originalMusicVolume, 1000); // Fade back to normal over 1 second
+                    if (this.backgroundMusic && this.musicPlaying) {
+                        this.backgroundMusic.volume = this.originalMusicVolume;
+                    }
                     this.endSceneSound.removeEventListener('ended', restoreMusic);
                 };
                 this.endSceneSound.addEventListener('ended', restoreMusic);
-            }).catch(_e => {
-                // Handle play failure silently - restore music anyway
+            }).catch(() => {
                 setTimeout(() => {
-                    this.fadeBackgroundMusic(this.originalMusicVolume, 1000);
-                }, 3000); // Restore after 3 seconds if sound fails to play
+                    if (this.backgroundMusic && this.musicPlaying) {
+                        this.backgroundMusic.volume = this.originalMusicVolume;
+                    }
+                }, 3000);
             });
         }
     }
@@ -791,6 +654,9 @@ class VoyageAeonStory {
         this.updateProgress();
         this.updateEndingBadge();
         this.generateChoiceReport();
+
+        // Hide navigation controls during game over
+        this.updateNavigationButtons();
     }
 
     updateEndingBadge() {
@@ -1181,6 +1047,9 @@ class VoyageAeonStory {
         this.storyProgress = 0;
         this.updateProgress();
 
+        // Reset navigation
+        this.initializeNavigation();
+
         // Reset visual feedback
         document.body.classList.remove('explorer-path', 'diplomatic-path', 'scientist-path');
         this.pathIcon.textContent = '🚀';
@@ -1199,66 +1068,82 @@ class VoyageAeonStory {
         `;
     }
 
-    shareResults() {
-        const shareText = `🚀 I just completed Voyage Aeon!
 
-🎯 Final Outcome: ${this.finalEnding}
-📊 Decisions Made: ${this.choiceDetails.length}
-🛤️ Path Type: ${this.getStoryPathType()}
-⚡ Risk Level: ${this.getRiskLevel()}
-
-Play your own space adventure at: ${window.location.href}
-
-#VoyageAeon #SpaceAdventure #InteractiveStory`;
-
-        if (navigator.share) {
-            navigator.share({
-                title: 'Voyage Aeon - Mission Complete!',
-                text: shareText,
-                url: window.location.href
-            }).catch(err => console.log('Error sharing:', err));
-        } else {
-            // Fallback: copy to clipboard
-            navigator.clipboard.writeText(shareText).then(() => {
-                alert('Results copied to clipboard! Share your adventure with friends!');
-            }).catch(() => {
-                // Final fallback: show in alert
-                alert('Share your results:\n\n' + shareText);
-            });
-        }
-    }
-
-    viewStats() {
-        const totalEndings = 24; // Total number of possible endings
-        const completionRate = Math.round((this.storyProgress / this.maxProgress) * 100);
-
-        let statsText = `📊 VOYAGE AEON STATISTICS\n`;
-        statsText += `═══════════════════════════════\n\n`;
-        statsText += `🎯 Current Mission:\n`;
-        statsText += `• Ending Achieved: ${this.finalEnding}\n`;
-        statsText += `• Completion Rate: ${completionRate}%\n`;
-        statsText += `• Decisions Made: ${this.choiceDetails.length}\n`;
-        statsText += `• Story Path: ${this.getStoryPathType()}\n`;
-        statsText += `• Exploration Style: ${this.getExplorationStyle()}\n`;
-        statsText += `• Risk Assessment: ${this.getRiskLevel()}\n\n`;
-
-        statsText += `🌌 Game Information:\n`;
-        statsText += `• Total Possible Endings: ${totalEndings}\n`;
-        statsText += `• Story Scenes: ${Object.keys(this.storyData).length}\n`;
-        statsText += `• Maximum Story Length: ${this.maxProgress} stages\n\n`;
-
-        statsText += `🏆 Achievements Unlocked:\n`;
-        const achievements = this.generateAchievements().split('\n• ');
-        achievements.forEach(achievement => {
-            if (achievement.trim()) {
-                statsText += `• ${achievement}\n`;
-            }
-        });
-
-        alert(statsText);
-    }
 
     showActionScreen(choiceText, nextScene) {
+        // Check if this is the "Board the station" choice
+        if (choiceText.includes("Board the station")) {
+            this.showBoardingImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Explore the blue-lit corridor" choice
+        if (choiceText.includes("Explore the blue-lit corridor")) {
+            this.showBlueCorridorImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Scan the area first for safety" choice
+        if (choiceText.includes("Scan the area first for safety")) {
+            this.showScanAreaImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Send a peaceful greeting" choice
+        if (choiceText.includes("Send a peaceful greeting")) {
+            this.showPeacefulGreetingImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Raise shields defensively" choice
+        if (choiceText.includes("Raise shields defensively")) {
+            this.showRaiseShieldImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Try to communicate first" choice
+        console.log('Checking choice text:', choiceText);
+        if (choiceText.includes("Try to communicate first")) {
+            console.log('✅ Matched "Try to communicate first" - calling showCommunicateImage');
+            this.showCommunicateImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Accept the knowledge" choice
+        if (choiceText.includes("Accept the knowledge")) {
+            console.log('✅ Matched "Accept the knowledge" - calling showAcceptKnowledgeImage');
+            this.showAcceptKnowledgeImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Ask about their civilization first" choice
+        if (choiceText.includes("Ask about their civilization first")) {
+            console.log('✅ Matched "Ask about their civilization first" - calling showAskCivilizationImage');
+            this.showAskCivilizationImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Request to meet their creators" choice
+        if (choiceText.includes("Request to meet their creators")) {
+            console.log('✅ Matched "Request to meet their creators" - calling showMeetCreatorsImage');
+            this.showMeetCreatorsImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Offer human knowledge in exchange" choice
+        if (choiceText.includes("Offer human knowledge in exchange")) {
+            console.log('✅ Matched "Offer human knowledge in exchange" - calling showOfferKnowledgeImage');
+            this.showOfferKnowledgeImage(nextScene);
+            return;
+        }
+
+        // Check if this is the "Study the crystal technology" choice
+        if (choiceText.includes("Study the crystal technology")) {
+            console.log('✅ Matched "Study the crystal technology" - calling showCrystalStudyImage');
+            this.showCrystalStudyImage(nextScene);
+            return;
+        }
+
         // Get action details based on the choice
         const actionData = this.getActionData(choiceText);
 
@@ -1290,6 +1175,893 @@ Play your own space adventure at: ${window.location.href}
             this.storyContainer.classList.remove('hidden');
             this.displayScene(nextScene);
         });
+    }
+
+    showBoardingImage(nextScene) {
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your image
+        const imagePaths = [
+            'images/AstronautBoardingAlienSpaceStation.png',
+            './images/AstronautBoardingAlienSpaceStation.png',
+            'AstronautBoardingAlienSpaceStation.png',
+            './AstronautBoardingAlienSpaceStation.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, show fallback
+                console.log('All image paths failed, showing fallback');
+                const fallbackText = document.createElement('div');
+                fallbackText.style.cssText = `
+                    color: #00d4ff;
+                    font-size: 3em;
+                    text-align: center;
+                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+                `;
+                fallbackText.textContent = '🚀 Boarding Station...';
+                imageOverlay.appendChild(fallbackText);
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showBlueCorridorImage(nextScene) {
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your blue corridor image
+        const imagePaths = [
+            'images/AstronautWalkingDownTheBlue-litCooridor.png',
+            './images/AstronautWalkingDownTheBlue-litCooridor.png',
+            'AstronautWalkingDownTheBlue-litCooridor.png',
+            './AstronautWalkingDownTheBlue-litCooridor.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying blue corridor path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, show fallback
+                console.log('All blue corridor image paths failed, showing fallback');
+                const fallbackText = document.createElement('div');
+                fallbackText.style.cssText = `
+                    color: #00d4ff;
+                    font-size: 3em;
+                    text-align: center;
+                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+                `;
+                fallbackText.textContent = '🚶 Exploring Blue Corridor...';
+                imageOverlay.appendChild(fallbackText);
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Blue corridor image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load blue corridor image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showScanAreaImage(nextScene) {
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your scan area image
+        const imagePaths = [
+            'images/AstronautScanTheAreaFirstForSafety.png',
+            './images/AstronautScanTheAreaFirstForSafety.png',
+            'AstronautScanTheAreaFirstForSafety.png',
+            './AstronautScanTheAreaFirstForSafety.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying scan area path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, show fallback
+                console.log('All scan area image paths failed, showing fallback');
+                const fallbackText = document.createElement('div');
+                fallbackText.style.cssText = `
+                    color: #00d4ff;
+                    font-size: 3em;
+                    text-align: center;
+                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+                `;
+                fallbackText.textContent = '📡 Scanning Area...';
+                imageOverlay.appendChild(fallbackText);
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Scan area image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load scan area image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showPeacefulGreetingImage(nextScene) {
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your peaceful greeting image
+        const imagePaths = [
+            'images/AstronautSendingPeacefulGreeting.png',
+            './images/AstronautSendingPeacefulGreeting.png',
+            'AstronautSendingPeacefulGreeting.png',
+            './AstronautSendingPeacefulGreeting.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying peaceful greeting path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, show fallback
+                console.log('All peaceful greeting image paths failed, showing fallback');
+                const fallbackText = document.createElement('div');
+                fallbackText.style.cssText = `
+                    color: #00d4ff;
+                    font-size: 3em;
+                    text-align: center;
+                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+                `;
+                fallbackText.textContent = '🤝 Sending Peaceful Greeting...';
+                imageOverlay.appendChild(fallbackText);
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Peaceful greeting image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load peaceful greeting image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showRaiseShieldImage(nextScene) {
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your raise shield image
+        const imagePaths = [
+            'images/AstronautRaiseShield.png',
+            './images/AstronautRaiseShield.png',
+            'AstronautRaiseShield.png',
+            './AstronautRaiseShield.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying raise shield path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, show fallback
+                console.log('All raise shield image paths failed, showing fallback');
+                const fallbackText = document.createElement('div');
+                fallbackText.style.cssText = `
+                    color: #00d4ff;
+                    font-size: 3em;
+                    text-align: center;
+                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+                `;
+                fallbackText.textContent = '🛡️ Raising Shields...';
+                imageOverlay.appendChild(fallbackText);
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Raise shield image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load raise shield image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showCommunicateImage(nextScene) {
+        console.log('🚀 showCommunicateImage called with nextScene:', nextScene);
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your communicate image
+        const imagePaths = [
+            'images/AstronautTryToCommunicateToAnAlienSpaceShip.png',
+            './images/AstronautTryToCommunicateToAnAlienSpaceShip.png',
+            'AstronautTryToCommunicateToAnAlienSpaceShip.png',
+            './AstronautTryToCommunicateToAnAlienSpaceShip.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying communicate path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, show fallback
+                console.log('All communicate image paths failed, showing fallback');
+                const fallbackText = document.createElement('div');
+                fallbackText.style.cssText = `
+                    color: #00d4ff;
+                    font-size: 3em;
+                    text-align: center;
+                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+                `;
+                fallbackText.textContent = '📡 Trying to Communicate...';
+                imageOverlay.appendChild(fallbackText);
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Communicate image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load communicate image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showAcceptKnowledgeImage(nextScene) {
+        console.log('🚀 showAcceptKnowledgeImage called with nextScene:', nextScene);
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your accept knowledge image
+        const imagePaths = [
+            'images/AstronautAcceptTheknowledge.png',
+            './images/AstronautAcceptTheknowledge.png',
+            'AstronautAcceptTheknowledge.png',
+            './AstronautAcceptTheknowledge.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying accept knowledge path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, show fallback
+                console.log('All accept knowledge image paths failed, showing fallback');
+                const fallbackText = document.createElement('div');
+                fallbackText.style.cssText = `
+                    color: #00d4ff;
+                    font-size: 3em;
+                    text-align: center;
+                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+                `;
+                fallbackText.textContent = '🎓 Accepting Knowledge...';
+                imageOverlay.appendChild(fallbackText);
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Accept knowledge image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load accept knowledge image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showAskCivilizationImage(nextScene) {
+        console.log('🚀 showAskCivilizationImage called with nextScene:', nextScene);
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your ask civilization image
+        const imagePaths = [
+            'images/AstronautAskAboutTheirCivilization First.png',
+            './images/AstronautAskAboutTheirCivilization First.png',
+            'AstronautAskAboutTheirCivilization First.png',
+            './AstronautAskAboutTheirCivilization First.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying ask civilization path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, show fallback
+                console.log('All ask civilization image paths failed, showing fallback');
+                const fallbackText = document.createElement('div');
+                fallbackText.style.cssText = `
+                    color: #00d4ff;
+                    font-size: 3em;
+                    text-align: center;
+                    text-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+                `;
+                fallbackText.textContent = '🤔 Asking About Civilization...';
+                imageOverlay.appendChild(fallbackText);
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Ask civilization image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load ask civilization image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showMeetCreatorsImage(nextScene) {
+        console.log('🚀 showMeetCreatorsImage called with nextScene:', nextScene);
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for the meet creators image
+        const imagePaths = [
+            'images/AstronautRequestToMeetTheirCreators.png',
+            './images/AstronautRequestToMeetTheirCreators.png',
+            'AstronautRequestToMeetTheirCreators.png',
+            './AstronautRequestToMeetTheirCreators.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying meet creators path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, just proceed without showing anything (image only, no fallback text)
+                console.log('All meet creators image paths failed, proceeding without image');
+                setTimeout(() => {
+                    document.body.removeChild(imageOverlay);
+                    this.storyContainer.classList.remove('hidden');
+                    this.displayScene(nextScene);
+                }, 3000);
+                return;
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Meet creators image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load meet creators image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showOfferKnowledgeImage(nextScene) {
+        console.log('🚀 showOfferKnowledgeImage called with nextScene:', nextScene);
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for the offer knowledge image
+        const imagePaths = [
+            'images/AstronautOfferHumanknowledgeInExchange.png',
+            './images/AstronautOfferHumanknowledgeInExchange.png',
+            'AstronautOfferHumanknowledgeInExchange.png',
+            './AstronautOfferHumanknowledgeInExchange.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying offer knowledge path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, just proceed without showing anything (image only, no fallback text)
+                console.log('All offer knowledge image paths failed, proceeding without image');
+                setTimeout(() => {
+                    document.body.removeChild(imageOverlay);
+                    this.storyContainer.classList.remove('hidden');
+                    this.displayScene(nextScene);
+                }, 3000);
+                return;
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Offer knowledge image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load offer knowledge image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
+    }
+
+    showCrystalStudyImage(nextScene) {
+        // Create a full-screen image overlay
+        const imageOverlay = document.createElement('div');
+        imageOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        `;
+
+        // Create the image element
+        const image = document.createElement('img');
+        // Try multiple possible file paths for your crystal study image
+        const imagePaths = [
+            'images/AstronautStudyTheCrystalTechnology.png',
+            './images/AstronautStudyTheCrystalTechnology.png',
+            'AstronautStudyTheCrystalTechnology.png',
+            './AstronautStudyTheCrystalTechnology.png'
+        ];
+
+        let currentPathIndex = 0;
+
+        // Function to try the next image path
+        const tryNextPath = () => {
+            currentPathIndex++;
+            if (currentPathIndex < imagePaths.length) {
+                console.log(`Trying crystal study path ${currentPathIndex + 1}: ${imagePaths[currentPathIndex]}`);
+                image.src = imagePaths[currentPathIndex];
+            } else {
+                // All paths failed, just proceed without showing anything (image only, no fallback text)
+                console.log('All crystal study image paths failed, proceeding without image');
+                setTimeout(() => {
+                    document.body.removeChild(imageOverlay);
+                    this.storyContainer.classList.remove('hidden');
+                    this.displayScene(nextScene);
+                }, 3000);
+                return;
+            }
+        };
+
+        image.onload = () => {
+            console.log(`✅ Crystal study image loaded successfully from: ${image.src}`);
+        };
+
+        image.onerror = () => {
+            console.log(`❌ Failed to load crystal study image: ${image.src}`);
+            tryNextPath();
+        };
+
+        image.src = imagePaths[0]; // Start with the first path
+
+        image.style.cssText = `
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        `;
+
+        imageOverlay.appendChild(image);
+        document.body.appendChild(imageOverlay);
+
+        // Hide story container
+        this.storyContainer.classList.add('hidden');
+
+        // Show the image for 3 seconds, then proceed to next scene
+        setTimeout(() => {
+            // Remove the overlay and show the next scene
+            document.body.removeChild(imageOverlay);
+            this.storyContainer.classList.remove('hidden');
+            this.displayScene(nextScene);
+        }, 3000); // Show for exactly 3 seconds
     }
 
     getActionData(choiceText) {
@@ -1451,44 +2223,112 @@ Play your own space adventure at: ${window.location.href}
         }
     }
 
-    restartStory() {
-        // Stop any typing sounds when restarting
-        this.stopTypingSound();
+    shareResults() {
+        const shareText = `🚀 I just completed Voyage Aeon!
 
-        // Reset all game state
-        this.currentScene = 'start';
-        this.choices = [];
-        this.choiceDetails = [];
-        this.storyProgress = 0;
-        this.finalEnding = '';
-        this.gameStarted = false;
+🎯 Final Outcome: ${this.finalEnding}
+📊 Decisions Made: ${this.choiceDetails.length}
+🛤️ Path Type: ${this.getStoryPathType()}
+⚡ Risk Level: ${this.getRiskLevel()}
 
-        // Reset UI elements
-        this.ensureActionScreenHidden();
-        this.updateProgress();
+Play your own space adventure at: ${window.location.href}
 
-        // Reset story text and choices to initial state
-        this.storyText.innerHTML = `
-            <p>Welcome to Voyage Aeon, where the mysteries of the cosmos await your discovery...</p>
-            <p>Click "Begin Mission" to start your space adventure!</p>
-        `;
-        this.choicesContainer.innerHTML = `
-            <button class="choice-btn" onclick="startStory()">🚀 Begin Mission</button>
-        `;
+#VoyageAeon #SpaceAdventure #InteractiveStory`;
 
-        // Reset path indicator
-        this.pathIcon.textContent = '🚀';
-        this.pathText.textContent = 'Ready for Mission';
-
-        // Remove any path classes from body
-        document.body.classList.remove('explorer-path', 'diplomatic-path', 'scientist-path');
-
-        // Ensure music continues playing during restart and restore volume
-        if (this.musicPlaying) {
-            this.backgroundMusic.volume = this.originalMusicVolume;
-            this.tryPlayMusic();
+        if (navigator.share) {
+            navigator.share({
+                title: 'Voyage Aeon - Mission Complete!',
+                text: shareText,
+                url: window.location.href
+            }).catch(err => console.log('Error sharing:', err));
+        } else {
+            // Fallback: copy to clipboard
+            navigator.clipboard.writeText(shareText).then(() => {
+                alert('Results copied to clipboard! Share your adventure with friends!');
+            }).catch(() => {
+                // Final fallback: show in alert
+                alert('Share your results:\n\n' + shareText);
+            });
         }
     }
+
+    viewStats() {
+        const totalEndings = 18; // Total number of possible endings
+        const completionRate = Math.round((this.storyProgress / this.maxProgress) * 100);
+
+        let statsText = `📊 VOYAGE AEON STATISTICS\n`;
+        statsText += `═══════════════════════════════\n\n`;
+        statsText += `🎯 Current Mission:\n`;
+        statsText += `• Ending Achieved: ${this.finalEnding}\n`;
+        statsText += `• Completion Rate: ${completionRate}%\n`;
+        statsText += `• Decisions Made: ${this.choiceDetails.length}\n`;
+        statsText += `• Story Path: ${this.getStoryPathType()}\n`;
+        statsText += `• Risk Assessment: ${this.getRiskLevel()}\n\n`;
+
+        statsText += `🌌 Game Information:\n`;
+        statsText += `• Total Possible Endings: ${totalEndings}\n`;
+        statsText += `• Story Scenes: ${Object.keys(this.storyData).length}\n`;
+        statsText += `• Maximum Story Length: ${this.maxProgress} stages\n\n`;
+
+        statsText += `🏆 Mission Summary:\n`;
+        this.choiceDetails.forEach((choice, index) => {
+            statsText += `${index + 1}. ${choice.text}\n`;
+        });
+
+        alert(statsText);
+    }
+
+    // Navigation Methods
+    updateNavigationButtons() {
+        // Show navigation controls only during active story (not at start or game over)
+        if (this.currentScene === 'start' || this.sceneHistory.length === 0) {
+            this.navigationControls.style.display = 'none';
+            return;
+        }
+
+        // Check if we're in game over state
+        if (this.gameOverScreen && !this.gameOverScreen.classList.contains('hidden')) {
+            this.navigationControls.style.display = 'none';
+            return;
+        }
+
+        this.navigationControls.style.display = 'flex';
+
+        // Update Previous button
+        this.prevBtn.disabled = this.currentHistoryIndex <= 0;
+
+        // Update Next button - disabled if we're at the end of history or if current scene has choices
+        const currentScene = this.storyData[this.currentScene];
+        const hasChoices = currentScene && currentScene.choices && currentScene.choices.length > 0;
+        const isAtEndOfHistory = this.currentHistoryIndex >= this.sceneHistory.length - 1;
+
+        this.nextBtn.disabled = isAtEndOfHistory || hasChoices;
+    }
+
+    navigatePrevious() {
+        if (this.currentHistoryIndex > 0) {
+            this.currentHistoryIndex--;
+            const previousScene = this.sceneHistory[this.currentHistoryIndex];
+            this.displayScene(previousScene, false); // Don't add to history
+        }
+    }
+
+    navigateNext() {
+        if (this.currentHistoryIndex < this.sceneHistory.length - 1) {
+            this.currentHistoryIndex++;
+            const nextScene = this.sceneHistory[this.currentHistoryIndex];
+            this.displayScene(nextScene, false); // Don't add to history
+        }
+    }
+
+    initializeNavigation() {
+        // Initialize navigation state
+        this.sceneHistory = [];
+        this.currentHistoryIndex = -1;
+        this.updateNavigationButtons();
+    }
+
+
 }
 
 // Initialize the game
