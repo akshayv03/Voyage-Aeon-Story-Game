@@ -26,6 +26,10 @@ class VoyageAeonStory {
         this.maxProgress = 15;                 // Maximum story progression steps
         this.finalEnding = '';                 // Final ending achievement name
 
+        // Timer system variables
+        this.missionStartTime = null;          // When the mission started (timestamp)
+        this.missionEndTime = null;            // When the mission ended (timestamp)
+
         // Navigation system variables
         this.sceneHistory = [];                // Array of visited scene keys
         this.currentHistoryIndex = -1;         // Current position in scene history
@@ -51,7 +55,6 @@ class VoyageAeonStory {
 
         // Game over screen elements
         this.gameOverScreen = document.getElementById('gameOverScreen');
-        this.gameOverText = document.getElementById('gameOverText');
         this.endingIcon = document.getElementById('endingIcon');
         this.endingTitle = document.getElementById('endingTitle');
 
@@ -64,12 +67,30 @@ class VoyageAeonStory {
         this.musicToggle = document.getElementById('musicToggle');
         this.stopBtn = document.getElementById('stopBtn');
         this.restartBtn = document.getElementById('restartBtn');
+        this.helpBtn = document.getElementById('helpBtn');
         this.prevBtn = document.getElementById('prevBtn');
         this.nextBtn = document.getElementById('nextBtn');
         this.navigationControls = document.getElementById('navigationControls');
 
+        // Help modal elements
+        this.helpModal = document.getElementById('helpModal');
+        this.closeHelpBtn = document.getElementById('closeHelpBtn');
+        this.closeHelpFooterBtn = document.getElementById('closeHelpFooterBtn');
+        this.helpOverlay = this.helpModal.querySelector('.help-overlay');
+
+        // AI Assistant elements
+        this.aiAssistantPanel = document.getElementById('aiAssistantPanel');
+        this.aiPanelToggle = document.getElementById('aiPanelToggle');
+        this.aiPanelContent = document.getElementById('aiPanelContent');
+        this.minimizeAiBtn = document.getElementById('minimizeAiBtn');
+        this.aiPanelMessages = document.getElementById('aiPanelMessages');
+        this.aiPanelInput = document.getElementById('aiPanelInput');
+        this.sendAiBtn = document.getElementById('sendAiBtn');
+        this.quickActionBtns = document.querySelectorAll('.quick-action-btn');
+
         // Progress and visual feedback elements
         this.progressFill = document.getElementById('progressFill');
+        this.milestones = document.querySelectorAll('.milestone');
         this.pathIcon = document.getElementById('pathIcon');
         this.pathText = document.getElementById('pathText');
 
@@ -89,8 +110,35 @@ class VoyageAeonStory {
         this.stopBtn.addEventListener('click', () => this.stopStory());
         this.musicToggle.addEventListener('click', () => this.toggleMusic());
         this.restartBtn.addEventListener('click', () => this.restartStory());
+        this.helpBtn.addEventListener('click', () => this.showHelp());
         this.prevBtn.addEventListener('click', () => this.navigatePrevious());
         this.nextBtn.addEventListener('click', () => this.navigateNext());
+
+        // Help modal event listeners
+        this.closeHelpBtn.addEventListener('click', () => this.hideHelp());
+        this.closeHelpFooterBtn.addEventListener('click', () => this.hideHelp());
+        this.helpOverlay.addEventListener('click', () => this.hideHelp());
+
+        // AI Assistant event listeners
+        this.aiPanelToggle.addEventListener('click', () => this.toggleAiPanel());
+        this.minimizeAiBtn.addEventListener('click', () => this.hideAiPanel());
+        this.sendAiBtn.addEventListener('click', () => this.sendAiMessage());
+        this.aiPanelInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.sendAiMessage();
+            }
+        });
+
+        // Quick action buttons
+        this.quickActionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const question = btn.getAttribute('data-question');
+                this.handleQuickAction(question);
+            });
+        });
+
+        // Keyboard event listeners
+        document.addEventListener('keydown', (e) => this.handleKeyPress(e));
 
         // Configure audio properties
         this.backgroundMusic.volume = 0.3;        // Background music at 30% volume
@@ -118,7 +166,7 @@ class VoyageAeonStory {
                 text: `You fly directly toward the signal and discover a massive alien space station. It's clearly ancient but still powered.`,
                 choices: [
                     { text: "🔍 Board the station", next: "board" },
-                    { text: "� Try to communicate first", next: "communicate" }
+                    { text: "📡 Try to communicate first", next: "communicate" }
                 ]
             },
 
@@ -412,6 +460,10 @@ class VoyageAeonStory {
         this.storyProgress = 1;
         this.updateProgress();
 
+        // Start the mission timer
+        this.missionStartTime = Date.now();
+        this.missionEndTime = null;
+
         // Reset navigation for new story
         this.sceneHistory = [];
         this.currentHistoryIndex = -1;
@@ -421,6 +473,14 @@ class VoyageAeonStory {
     }
 
     displayScene(sceneKey, addToHistory = true) {
+        // Validate scene input
+        const validationResult = this.validateScene(sceneKey);
+        if (!validationResult.isValid) {
+            console.error('Scene validation failed:', validationResult.error);
+            this.showSceneValidationError(validationResult.error);
+            return;
+        }
+
         const scene = this.storyData[sceneKey];
         this.currentScene = sceneKey;
 
@@ -509,15 +569,29 @@ class VoyageAeonStory {
     }
 
     makeChoice(nextScene) {
+        // Validate choice input
+        const validationResult = this.validateChoice(nextScene);
+        if (!validationResult.isValid) {
+            console.error('Invalid choice attempted:', validationResult.error);
+            this.showChoiceValidationError(validationResult.error);
+            return;
+        }
+
         // Store the choice with context
         const currentSceneData = this.storyData[this.currentScene];
         const chosenOption = currentSceneData.choices.find(choice => choice.next === nextScene);
+
+        // Debug logging to help identify missing choices
+        if (!chosenOption) {
+            console.warn(`Warning: Could not find choice for nextScene "${nextScene}" in scene "${this.currentScene}"`);
+            console.log('Available choices:', currentSceneData.choices);
+        }
 
         this.choices.push(nextScene);
         this.choiceDetails.push({
             sceneKey: this.currentScene,
             sceneName: this.getSceneName(this.currentScene),
-            choiceText: chosenOption ? chosenOption.text : 'Unknown choice',
+            choiceText: chosenOption ? chosenOption.text : `Choice leading to ${nextScene}`,
             choiceDescription: this.getChoiceDescription(nextScene),
             nextScene: nextScene
         });
@@ -527,12 +601,247 @@ class VoyageAeonStory {
         this.updateVisualFeedback();
 
         // Show action screen before proceeding to next scene
-        this.showActionScreen(chosenOption ? chosenOption.text : 'Unknown action', nextScene);
+        this.showActionScreen(chosenOption ? chosenOption.text : `Action for ${nextScene}`, nextScene);
+    }
+
+    /**
+     * Validate choice selection
+     * @param {string} nextScene - The scene key to validate
+     * @returns {Object} - Validation result
+     */
+    validateChoice(nextScene) {
+        // Syntactical validation
+        if (!nextScene || typeof nextScene !== 'string') {
+            return { isValid: false, error: 'Invalid choice: nextScene must be a non-empty string' };
+        }
+
+        if (nextScene.trim().length === 0) {
+            return { isValid: false, error: 'Invalid choice: nextScene cannot be empty' };
+        }
+
+        // Semantic validation
+        const currentSceneData = this.storyData[this.currentScene];
+        if (!currentSceneData) {
+            return { isValid: false, error: `Invalid game state: current scene "${this.currentScene}" not found` };
+        }
+
+        if (!currentSceneData.choices || !Array.isArray(currentSceneData.choices)) {
+            return { isValid: false, error: `Invalid scene data: no choices available for scene "${this.currentScene}"` };
+        }
+
+        // Check if the choice is valid for current scene
+        const validChoices = currentSceneData.choices.map(choice => choice.next);
+        if (!validChoices.includes(nextScene)) {
+            return {
+                isValid: false,
+                error: `Invalid choice: "${nextScene}" is not a valid option for scene "${this.currentScene}". Valid choices: ${validChoices.join(', ')}`
+            };
+        }
+
+        // Check if target scene exists
+        if (!this.storyData[nextScene]) {
+            return { isValid: false, error: `Invalid choice: target scene "${nextScene}" does not exist in story data` };
+        }
+
+        // Check for game state consistency
+        if (this.currentScene === nextScene) {
+            return { isValid: false, error: 'Invalid choice: cannot transition to the same scene' };
+        }
+
+        return { isValid: true };
+    }
+
+    /**
+     * Show choice validation error
+     * @param {string} errorMessage - Error message to display
+     */
+    showChoiceValidationError(errorMessage) {
+        // Log error for debugging
+        console.error('Choice validation error:', errorMessage);
+
+        // Show user-friendly error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'choice-error-message';
+        errorDiv.textContent = 'Something went wrong with your choice. Please try again.';
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 3000;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        `;
+
+        document.body.appendChild(errorDiv);
+
+        // Remove error message after 3 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 3000);
+    }
+
+    /**
+     * Validate scene input
+     * @param {string} sceneKey - The scene key to validate
+     * @returns {Object} - Validation result
+     */
+    validateScene(sceneKey) {
+        // Syntactical validation
+        if (!sceneKey || typeof sceneKey !== 'string') {
+            return { isValid: false, error: 'Invalid scene: sceneKey must be a non-empty string' };
+        }
+
+        if (sceneKey.trim().length === 0) {
+            return { isValid: false, error: 'Invalid scene: sceneKey cannot be empty' };
+        }
+
+        // Semantic validation
+        if (!this.storyData) {
+            return { isValid: false, error: 'Invalid game state: story data not loaded' };
+        }
+
+        if (!this.storyData[sceneKey]) {
+            return { isValid: false, error: `Invalid scene: scene "${sceneKey}" does not exist in story data` };
+        }
+
+        const scene = this.storyData[sceneKey];
+
+        // Validate scene structure
+        if (!scene.text || typeof scene.text !== 'string') {
+            return { isValid: false, error: `Invalid scene data: scene "${sceneKey}" missing or invalid text property` };
+        }
+
+        if (!scene.choices || !Array.isArray(scene.choices)) {
+            return { isValid: false, error: `Invalid scene data: scene "${sceneKey}" missing or invalid choices array` };
+        }
+
+        // Validate each choice in the scene
+        for (let i = 0; i < scene.choices.length; i++) {
+            const choice = scene.choices[i];
+            if (!choice.text || typeof choice.text !== 'string') {
+                return { isValid: false, error: `Invalid scene data: choice ${i} in scene "${sceneKey}" missing or invalid text` };
+            }
+            if (!choice.next || typeof choice.next !== 'string') {
+                return { isValid: false, error: `Invalid scene data: choice ${i} in scene "${sceneKey}" missing or invalid next property` };
+            }
+        }
+
+        return { isValid: true };
+    }
+
+    /**
+     * Show scene validation error
+     * @param {string} errorMessage - Error message to display
+     */
+    showSceneValidationError(errorMessage) {
+        // Log error for debugging
+        console.error('Scene validation error:', errorMessage);
+
+        // Show user-friendly error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'scene-error-message';
+        errorDiv.textContent = 'There was an error loading the story. Please refresh the page and try again.';
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 100, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 3000;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 100, 0, 0.5);
+            max-width: 400px;
+        `;
+
+        document.body.appendChild(errorDiv);
+
+        // Remove error message after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 5000);
     }
 
     updateProgress() {
         const progressPercent = (this.storyProgress / this.maxProgress) * 100;
-        this.progressFill.style.width = `${Math.min(progressPercent, 100)}%`;
+        const clampedPercent = Math.min(progressPercent, 100);
+
+        // Update progress bar fill with smooth animation
+        this.progressFill.style.width = `${clampedPercent}%`;
+
+        // Update milestones
+        this.updateMilestones();
+    }
+
+    /**
+     * Update milestone indicators based on current progress
+     * Highlights achieved milestones and shows current milestone
+     */
+    updateMilestones() {
+        this.milestones.forEach(milestone => {
+            const step = parseInt(milestone.getAttribute('data-step'));
+
+            // Remove existing classes
+            milestone.classList.remove('achieved', 'current');
+
+            if (this.storyProgress > step) {
+                // Milestone achieved
+                milestone.classList.add('achieved');
+            } else if (this.storyProgress === step) {
+                // Current milestone
+                milestone.classList.add('current');
+                // Add achievement animation
+                this.animateMilestoneAchievement(milestone);
+            }
+        });
+    }
+
+    /**
+     * Animate milestone achievement with a special effect
+     * @param {Element} milestone - The milestone element to animate
+     */
+    animateMilestoneAchievement(milestone) {
+        // Create a temporary glow effect
+        milestone.style.animation = 'none';
+        setTimeout(() => {
+            milestone.style.animation = 'milestonePulse 1s ease-in-out infinite';
+        }, 10);
+
+        // Add a brief scale animation for achievement
+        const originalTransform = milestone.style.transform;
+        milestone.style.transform = 'translateX(-50%) scale(2)';
+        milestone.style.transition = 'transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+
+        setTimeout(() => {
+            milestone.style.transform = originalTransform;
+            milestone.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        }, 300);
+    }
+
+    /**
+     * Reset all milestones to their initial state
+     * Removes all achievement and current classes
+     */
+    resetMilestones() {
+        this.milestones.forEach(milestone => {
+            milestone.classList.remove('achieved', 'current');
+            milestone.style.animation = '';
+            milestone.style.transform = '';
+            milestone.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        });
     }
 
     updateVisualFeedback() {
@@ -639,7 +948,22 @@ class VoyageAeonStory {
         // Stop any typing sounds when story is stopped
         this.stopTypingSound();
         this.finalEnding = 'Mission Terminated by User';
-        this.gameOverText.textContent = 'Story stopped by user. Thanks for playing!';
+
+        // Record mission end time for stopped missions
+        this.missionEndTime = Date.now();
+
+        // Update the header to show mission stopped
+        const endingTitle = document.getElementById('endingTitle');
+        if (endingTitle) {
+            endingTitle.textContent = 'Mission Terminated';
+        }
+
+        // Update the header text
+        const gameOverHeader = document.querySelector('#gameOverScreen h2');
+        if (gameOverHeader) {
+            gameOverHeader.textContent = '🛑 Mission Stopped 🛑';
+        }
+
         this.showGameOver();
     }
 
@@ -647,6 +971,9 @@ class VoyageAeonStory {
         // Stop any typing sounds and play end scene sound
         this.stopTypingSound();
         this.playEndSceneSound();
+
+        // Record mission end time
+        this.missionEndTime = Date.now();
 
         document.querySelector('.story-container').classList.add('hidden');
         this.gameOverScreen.classList.remove('hidden');
@@ -693,62 +1020,168 @@ class VoyageAeonStory {
     }
 
     generateChoiceReport() {
-        if (this.choiceDetails.length > 0 || this.finalEnding) {
-            const originalText = this.gameOverText.textContent;
+        // Populate the new card-based layout instead of text report
+        this.populateMissionCards();
+    }
 
-            // Create comprehensive and presentable report
-            let report = `\n\n═══════════════════════════════════════\n`;
-            report += `📊 VOYAGE AEON - MISSION REPORT\n`;
-            report += `═══════════════════════════════════════\n\n`;
+    populateMissionCards() {
+        // Apply theme based on story path
+        this.applyEndScreenTheme();
 
-            // Mission Summary
-            report += `🎯 MISSION OUTCOME\n`;
-            report += `${this.finalEnding}\n\n`;
+        // Populate Journey Choices
+        const journeyChoices = document.getElementById('journeyChoices');
+        journeyChoices.innerHTML = '';
 
-            // Story Summary
-            report += `📖 STORY SUMMARY\n`;
-            report += `${this.generateStorySummary()}\n\n`;
+        if (this.choiceDetails.length > 0) {
+            this.choiceDetails.forEach((detail) => {
+                const li = document.createElement('li');
+                li.textContent = detail.choiceText;
+                journeyChoices.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.textContent = 'Mission ended early';
+            journeyChoices.appendChild(li);
+        }
 
-            // Detailed Choice Analysis
-            if (this.choiceDetails.length > 0) {
-                report += `🛤️ DETAILED CHOICE ANALYSIS\n`;
-                report += `─────────────────────────────\n`;
+        // Populate Mission Statistics
+        // Count unique scenes visited (use sceneHistory length, which tracks actual scenes visited)
+        const uniqueScenesVisited = this.sceneHistory.length;
+        document.getElementById('scenesVisited').textContent = uniqueScenesVisited;
+        document.getElementById('decisionsCount').textContent = this.choiceDetails.length;
 
-                this.choiceDetails.forEach((detail, index) => {
-                    report += `\n${index + 1}. DECISION POINT: ${detail.sceneName}\n`;
-                    report += `   🎯 Your Choice: ${detail.choiceText}\n`;
-                    report += `   📝 What Happened: ${detail.choiceDescription}\n`;
-                    report += `   🔄 Led To: ${this.getSceneName(detail.nextScene)}\n`;
-                    if (index < this.choiceDetails.length - 1) {
-                        report += `   ⬇️ THEN...\n`;
-                    }
-                });
+        // Calculate real mission duration
+        let durationText = '00:00';
+        if (this.missionStartTime && this.missionEndTime) {
+            const durationMs = this.missionEndTime - this.missionStartTime;
+            const totalSeconds = Math.floor(durationMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            durationText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else if (this.missionStartTime) {
+            // Mission is still ongoing, calculate current duration
+            const durationMs = Date.now() - this.missionStartTime;
+            const totalSeconds = Math.floor(durationMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            durationText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        document.getElementById('missionDuration').textContent = durationText;
+
+        // Populate Mission Outcome
+        document.getElementById('outcomeIcon').textContent = this.getEndingIcon();
+        document.getElementById('outcomeTitle').textContent = this.finalEnding || 'Mission Incomplete';
+        document.getElementById('outcomeDescription').textContent = this.getOutcomeDescription();
+
+        // Populate Achievement Badges
+        this.populateAchievementBadges();
+    }
+
+    applyEndScreenTheme() {
+        const gameOverScreen = document.getElementById('gameOverScreen');
+        const pathType = this.getStoryPathType();
+
+        // Remove existing theme classes
+        gameOverScreen.classList.remove('explorer-theme', 'diplomatic-theme', 'scientist-theme');
+
+        // Apply theme based on story path
+        if (pathType === 'Bold Explorer') {
+            gameOverScreen.classList.add('explorer-theme');
+        } else if (pathType === 'Diplomatic Pioneer') {
+            gameOverScreen.classList.add('diplomatic-theme');
+        } else if (pathType === 'Cautious Scientist') {
+            gameOverScreen.classList.add('scientist-theme');
+        }
+    }
+
+    getEndingIcon() {
+        const endingIcons = {
+            'Crystal Technology Specialist': '💎',
+            'Deep Space Explorer': '🚀',
+            'Galactic Knowledge Keeper': '📚',
+            'Civilization Historian': '📜',
+            'Cosmic Cartographer': '🗺️',
+            'Alien Ambassador': '🤝',
+            'Space Guardian': '🛡️',
+            'Diplomatic Bridge Builder': '🌉',
+            'Bio-Tech Symbiosis Pioneer': '🔬',
+            'Cosmic Consciousness Transcendent': '🧠',
+            'Galactic Cartographer': '🌌',
+            'Galactic Navigator': '🧭',
+            'Quantum Consciousness Weaver': '⚡',
+            'Guardian of the Zephyrian Legacy': '👑',
+            'Greatest Scientific Mind': '🔬',
+            'Bio-Ship Pioneer': '🚢',
+            'Keeper of Galactic Knowledge': '📖',
+            'Cosmic Energy Engineer': '⚡',
+            'Celestial Archivist': '📚',
+            'Galactic Cultural Ambassador': '🌍',
+            'Galactic Guardian': '🛡️',
+            'Defensive Technology Specialist': '🔧',
+            'Galactic Peacekeeper': '☮️',
+            'Interspecies Diplomatic Coordinator': '🤝'
+        };
+        return endingIcons[this.finalEnding] || '🏆';
+    }
+
+    getOutcomeDescription() {
+        if (!this.finalEnding || this.finalEnding.includes('Terminated')) {
+            return 'Your mission was cut short, but every journey teaches us something valuable.';
+        }
+
+        const pathType = this.getStoryPathType();
+        if (pathType === 'Bold Explorer') {
+            return 'Your bold decisions led to extraordinary discoveries in the depths of space.';
+        } else if (pathType === 'Diplomatic Pioneer') {
+            return 'Your peaceful approach opened new pathways for interspecies cooperation.';
+        } else if (pathType === 'Cautious Scientist') {
+            return 'Your methodical approach ensured safe exploration while making significant discoveries.';
+        } else {
+            return 'Your balanced approach led to a successful and meaningful cosmic journey.';
+        }
+    }
+
+    populateAchievementBadges() {
+        const achievementBadges = document.getElementById('achievementBadges');
+        achievementBadges.innerHTML = '';
+
+        const achievements = this.generateAchievements().split('\n• ').slice(0, 4); // Limit to 4 badges
+
+        achievements.forEach(achievement => {
+            if (achievement.trim() && !achievement.includes('Mission Incomplete')) {
+                const badge = document.createElement('div');
+                badge.className = 'achievement-badge';
+
+                // Extract icon and text from achievement string
+                const match = achievement.match(/^(.+?)\s+"(.+?)"\s+-\s+(.+)$/);
+                if (match) {
+                    const [, icon, title, description] = match;
+                    badge.innerHTML = `
+                        <span class="badge-icon">${icon.trim()}</span>
+                        <span class="badge-text">${title}</span>
+                    `;
+                    badge.title = description; // Tooltip with full description
+                } else {
+                    // Fallback for achievements that don't match the pattern
+                    badge.innerHTML = `
+                        <span class="badge-icon">🏆</span>
+                        <span class="badge-text">${achievement.replace('• ', '').substring(0, 20)}...</span>
+                    `;
+                }
+
+                achievementBadges.appendChild(badge);
             }
+        });
 
-            // Mission Statistics
-            report += `\n\n📊 MISSION STATISTICS\n`;
-            report += `─────────────────────\n`;
-            report += `• Total Decisions Made: ${this.choiceDetails.length}\n`;
-            report += `• Primary Approach: ${this.getStoryPathType()}\n`;
-            report += `• Mission Progress: ${this.storyProgress}/${this.maxProgress} stages completed\n`;
-            report += `• Exploration Style: ${this.getExplorationStyle()}\n`;
-            report += `• Risk Level: ${this.getRiskLevel()}\n`;
-
-            // Achievement Summary
-            report += `\n🏆 ACHIEVEMENTS UNLOCKED\n`;
-            report += `─────────────────────────\n`;
-            report += this.generateAchievements();
-
-            // Final Assessment
-            report += `\n\n🌟 FINAL ASSESSMENT\n`;
-            report += `─────────────────────\n`;
-            report += this.generateFinalAssessment();
-
-            report += `\n\n═══════════════════════════════════════\n`;
-            report += `Thank you for playing Voyage Aeon!\n`;
-            report += `═══════════════════════════════════════`;
-
-            this.gameOverText.textContent = originalText + report;
+        // If no achievements, show a default badge
+        if (achievementBadges.children.length === 0) {
+            const badge = document.createElement('div');
+            badge.className = 'achievement-badge';
+            badge.innerHTML = `
+                <span class="badge-icon">🚀</span>
+                <span class="badge-text">Space Explorer</span>
+            `;
+            achievementBadges.appendChild(badge);
         }
     }
 
@@ -1047,6 +1480,13 @@ class VoyageAeonStory {
         this.storyProgress = 0;
         this.updateProgress();
 
+        // Reset timer
+        this.missionStartTime = null;
+        this.missionEndTime = null;
+
+        // Reset milestones
+        this.resetMilestones();
+
         // Reset navigation
         this.initializeNavigation();
 
@@ -1238,9 +1678,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1319,9 +1763,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1400,9 +1848,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1481,9 +1933,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1562,9 +2018,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1644,9 +2104,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1726,9 +2190,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1808,9 +2276,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1887,9 +2359,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -1966,9 +2442,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -2044,9 +2524,13 @@ class VoyageAeonStory {
         image.src = imagePaths[0]; // Start with the first path
 
         image.style.cssText = `
-            max-width: 100%;
-            max-height: 100%;
+            width: 90vw;
+            height: 90vh;
+            max-width: 1200px;
+            max-height: 800px;
             object-fit: contain;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
         `;
 
         imageOverlay.appendChild(image);
@@ -2326,6 +2810,573 @@ Play your own space adventure at: ${window.location.href}
         this.sceneHistory = [];
         this.currentHistoryIndex = -1;
         this.updateNavigationButtons();
+    }
+
+    /**
+     * Show the help modal
+     * Displays comprehensive game instructions and controls
+     */
+    showHelp() {
+        this.helpModal.classList.remove('hidden');
+        // Focus on the close button for accessibility
+        setTimeout(() => {
+            this.closeHelpBtn.focus();
+        }, 100);
+    }
+
+    /**
+     * Hide the help modal
+     * Closes the help modal and returns focus to the help button
+     */
+    hideHelp() {
+        this.helpModal.classList.add('hidden');
+        // Return focus to help button for accessibility
+        this.helpBtn.focus();
+    }
+
+    /**
+     * Handle keyboard events
+     * Provides keyboard shortcuts for game controls
+     */
+    handleKeyPress(event) {
+        // Close help modal with Escape key
+        if (event.key === 'Escape' && !this.helpModal.classList.contains('hidden')) {
+            this.hideHelp();
+            event.preventDefault();
+        }
+        // Close AI panel with Escape key
+        if (event.key === 'Escape' && this.aiAssistantPanel.classList.contains('expanded')) {
+            this.hideAiPanel();
+            event.preventDefault();
+        }
+    }
+
+    /**
+     * Toggle the AI assistant panel
+     * Shows or hides the side panel
+     */
+    toggleAiPanel() {
+        if (this.aiAssistantPanel.classList.contains('expanded')) {
+            this.hideAiPanel();
+        } else {
+            this.showAiPanel();
+        }
+    }
+
+    /**
+     * Show the AI assistant panel
+     * Displays the side panel interface
+     */
+    showAiPanel() {
+        this.aiAssistantPanel.classList.add('expanded');
+        // Focus on the input for accessibility
+        setTimeout(() => {
+            this.aiPanelInput.focus();
+        }, 300);
+    }
+
+    /**
+     * Hide the AI assistant panel
+     * Closes the side panel interface
+     */
+    hideAiPanel() {
+        this.aiAssistantPanel.classList.remove('expanded');
+        // Return focus to toggle button for accessibility
+        this.aiPanelToggle.focus();
+    }
+
+    /**
+     * Handle quick action button clicks
+     * Processes predefined questions from quick action buttons
+     */
+    handleQuickAction(question) {
+        // Add user message to chat
+        this.addAiMessage(question, 'user');
+        // Get and add bot response
+        const response = this.getChatbotResponse(question);
+        setTimeout(() => {
+            this.addAiMessage(response, 'bot');
+        }, 500);
+    }
+
+    /**
+     * Send an AI message from the input field
+     * Processes user input and generates AI response
+     */
+    sendAiMessage() {
+        const message = this.aiPanelInput.value.trim();
+
+        // Comprehensive input validation
+        const validationResult = this.validateChatInput(message);
+        if (!validationResult.isValid) {
+            this.showInputValidationError(validationResult.error);
+            return;
+        }
+
+        // Add user message to chat
+        this.addAiMessage(message, 'user');
+
+        // Clear input
+        this.aiPanelInput.value = '';
+
+        // Get and add bot response
+        const response = this.getChatbotResponse(message);
+        setTimeout(() => {
+            this.addAiMessage(response, 'bot');
+        }, 500);
+    }
+
+    /**
+     * Comprehensive input validation for chat messages
+     * Validates both syntactical and semantic aspects
+     * @param {string} input - The user input to validate
+     * @returns {Object} - Validation result with isValid flag and error message
+     */
+    validateChatInput(input) {
+        // Syntactical validation
+        if (!input || typeof input !== 'string') {
+            return { isValid: false, error: 'Please enter a message.' };
+        }
+
+        if (input.length === 0) {
+            return { isValid: false, error: 'Message cannot be empty.' };
+        }
+
+        if (input.length > 200) {
+            return { isValid: false, error: 'Message too long. Please keep it under 200 characters.' };
+        }
+
+        // Check for only whitespace
+        if (input.replace(/\s/g, '').length === 0) {
+            return { isValid: false, error: 'Message cannot contain only spaces.' };
+        }
+
+        // Semantic validation
+        const sanitizedInput = this.sanitizeInput(input);
+        if (sanitizedInput !== input) {
+            return { isValid: false, error: 'Message contains invalid characters. Please use only letters, numbers, and basic punctuation.' };
+        }
+
+        // Check for spam patterns (repeated characters)
+        if (this.detectSpamPattern(input)) {
+            return { isValid: false, error: 'Please avoid repetitive text patterns.' };
+        }
+
+        // Check for appropriate content (basic profanity filter)
+        if (this.containsInappropriateContent(input)) {
+            return { isValid: false, error: 'Please keep your message appropriate for all audiences.' };
+        }
+
+        // Rate limiting check
+        if (this.isRateLimited()) {
+            return { isValid: false, error: 'Please wait a moment before sending another message.' };
+        }
+
+        return { isValid: true };
+    }
+
+    /**
+     * Sanitize user input by removing potentially harmful characters
+     * @param {string} input - Raw user input
+     * @returns {string} - Sanitized input
+     */
+    sanitizeInput(input) {
+        // Allow letters, numbers, spaces, and basic punctuation
+        return input.replace(/[^a-zA-Z0-9\s.,!?'"()-]/g, '');
+    }
+
+    /**
+     * Detect spam patterns in user input
+     * @param {string} input - User input to check
+     * @returns {boolean} - True if spam pattern detected
+     */
+    detectSpamPattern(input) {
+        // Check for repeated characters (more than 4 in a row)
+        if (/(.)\1{4,}/.test(input)) {
+            return true;
+        }
+
+        // Check for repeated words
+        const words = input.toLowerCase().split(/\s+/);
+        const wordCount = {};
+        for (const word of words) {
+            if (word.length > 2) {
+                wordCount[word] = (wordCount[word] || 0) + 1;
+                if (wordCount[word] > 3) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Basic content filter for inappropriate language
+     * @param {string} input - User input to check
+     * @returns {boolean} - True if inappropriate content detected
+     */
+    containsInappropriateContent(input) {
+        // Basic list of inappropriate words (you can expand this)
+        const inappropriateWords = ['spam', 'test123', 'aaaa', 'bbbb'];
+        const lowerInput = input.toLowerCase();
+
+        return inappropriateWords.some(word => lowerInput.includes(word));
+    }
+
+    /**
+     * Check if user is sending messages too quickly (rate limiting)
+     * @returns {boolean} - True if rate limited
+     */
+    isRateLimited() {
+        const now = Date.now();
+        const timeWindow = 2000; // 2 seconds between messages
+
+        if (!this.lastMessageTime) {
+            this.lastMessageTime = now;
+            return false;
+        }
+
+        if (now - this.lastMessageTime < timeWindow) {
+            return true;
+        }
+
+        this.lastMessageTime = now;
+        return false;
+    }
+
+    /**
+     * Show input validation error to user
+     * @param {string} errorMessage - Error message to display
+     */
+    showInputValidationError(errorMessage) {
+        // Create temporary error message
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'input-error-message';
+        errorDiv.textContent = errorMessage;
+        errorDiv.style.cssText = `
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            color: #ff6b6b;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            margin: 5px 0;
+            animation: fadeInOut 3s ease-in-out;
+        `;
+
+        // Add error message above input
+        const inputArea = document.querySelector('.ai-panel-input-area');
+        inputArea.insertBefore(errorDiv, inputArea.firstChild);
+
+        // Remove error message after 3 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 3000);
+
+        // Add CSS animation for error message
+        if (!document.querySelector('#errorAnimationStyle')) {
+            const style = document.createElement('style');
+            style.id = 'errorAnimationStyle';
+            style.textContent = `
+                @keyframes fadeInOut {
+                    0% { opacity: 0; transform: translateY(-10px); }
+                    20% { opacity: 1; transform: translateY(0); }
+                    80% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-10px); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    /**
+     * Add a message to the AI panel interface
+     * @param {string} message - The message content
+     * @param {string} sender - Either 'user' or 'bot'
+     */
+    addAiMessage(message, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}-message`;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = sender === 'bot' ? '🤖' : '👨‍🚀';
+
+        const content = document.createElement('div');
+        content.className = 'message-content';
+
+        // Handle HTML content for bot messages
+        if (sender === 'bot' && message.includes('<')) {
+            content.innerHTML = message;
+        } else {
+            content.textContent = message;
+        }
+
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(content);
+
+        this.aiPanelMessages.appendChild(messageDiv);
+
+        // Scroll to bottom
+        this.aiPanelMessages.scrollTop = this.aiPanelMessages.scrollHeight;
+    }
+
+    /**
+     * Download mission report as a text file
+     * Generates a comprehensive report and triggers download
+     */
+    downloadReport() {
+        const report = this.generateDownloadableReport();
+        const blob = new Blob([report], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Voyage_Aeon_Mission_Report_${this.getCurrentTimestamp()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Generate a comprehensive downloadable mission report
+     * @returns {string} - Formatted text report
+     */
+    generateDownloadableReport() {
+        const timestamp = new Date().toLocaleString();
+        const duration = this.getMissionDurationText();
+        const pathType = this.getStoryPathType();
+        const achievements = this.generateAchievements();
+
+        let report = '';
+        report += '═══════════════════════════════════════════════════════════════\n';
+        report += '                    VOYAGE AEON - MISSION REPORT                    \n';
+        report += '═══════════════════════════════════════════════════════════════\n\n';
+
+        // Mission Header
+        report += `📅 Mission Date: ${timestamp}\n`;
+        report += `🚀 Commander: Space Explorer\n`;
+        report += `🎯 Mission Status: ${this.finalEnding || 'Incomplete'}\n`;
+        report += `⏱️  Mission Duration: ${duration}\n`;
+        report += `🛤️  Story Path: ${pathType}\n\n`;
+
+        // Mission Outcome
+        report += '═══════════════════════════════════════════════════════════════\n';
+        report += '                        MISSION OUTCOME                         \n';
+        report += '═══════════════════════════════════════════════════════════════\n\n';
+
+        if (this.finalEnding) {
+            report += `🏆 Final Achievement: ${this.finalEnding}\n\n`;
+            report += `📖 Mission Summary:\n`;
+            report += `${this.getOutcomeDescription()}\n\n`;
+        } else {
+            report += `⚠️  Mission Status: Terminated Early\n`;
+            report += `📖 Mission Summary: Mission was stopped before completion.\n\n`;
+        }
+
+        // Journey Details
+        report += '═══════════════════════════════════════════════════════════════\n';
+        report += '                       JOURNEY DETAILS                          \n';
+        report += '═══════════════════════════════════════════════════════════════\n\n';
+
+        report += `📊 Mission Statistics:\n`;
+        report += `   • Scenes Visited: ${this.sceneHistory.length}\n`;
+        report += `   • Decisions Made: ${this.choiceDetails.length}\n`;
+        report += `   • Mission Duration: ${duration}\n`;
+        report += `   • Story Path Type: ${pathType}\n\n`;
+
+        // Choice History
+        if (this.choiceDetails.length > 0) {
+            report += `🛤️  Your Cosmic Journey:\n`;
+            this.choiceDetails.forEach((detail, index) => {
+                report += `   ${index + 1}. ${detail.choiceText}\n`;
+            });
+            report += '\n';
+        }
+
+        // Achievements
+        report += '═══════════════════════════════════════════════════════════════\n';
+        report += '                         ACHIEVEMENTS                           \n';
+        report += '═══════════════════════════════════════════════════════════════\n\n';
+
+        if (achievements && !achievements.includes('Mission Incomplete')) {
+            const achievementList = achievements.split('\n• ').filter(a => a.trim());
+            achievementList.forEach(achievement => {
+                if (achievement.trim()) {
+                    report += `🏆 ${achievement.replace('• ', '')}\n`;
+                }
+            });
+        } else {
+            report += `🚀 Space Explorer - Embarked on a cosmic journey\n`;
+        }
+
+        report += '\n';
+
+        // Footer
+        report += '═══════════════════════════════════════════════════════════════\n';
+        report += '                    END OF MISSION REPORT                       \n';
+        report += '═══════════════════════════════════════════════════════════════\n\n';
+
+        report += `Generated by Voyage Aeon Interactive Story Game\n`;
+        report += `Report Date: ${timestamp}\n`;
+        report += `\nThank you for exploring the cosmos! 🌌\n`;
+
+        return report;
+    }
+
+    /**
+     * Get current timestamp for filename
+     * @returns {string} - Formatted timestamp
+     */
+    getCurrentTimestamp() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        return `${year}${month}${day}_${hours}${minutes}`;
+    }
+
+    /**
+     * Get mission duration as formatted text
+     * @returns {string} - Duration in MM:SS format
+     */
+    getMissionDurationText() {
+        if (this.missionStartTime && this.missionEndTime) {
+            const durationMs = this.missionEndTime - this.missionStartTime;
+            const totalSeconds = Math.floor(durationMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        } else if (this.missionStartTime) {
+            const durationMs = Date.now() - this.missionStartTime;
+            const totalSeconds = Math.floor(durationMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        return '00:00';
+    }
+
+    /**
+     * Generate chatbot responses based on user input
+     * @param {string} input - User's question or message
+     * @returns {string} - Bot's response
+     */
+    getChatbotResponse(input) {
+        const lowerInput = input.toLowerCase();
+
+        // Game controls and mechanics
+        if (lowerInput.includes('how') && (lowerInput.includes('play') || lowerInput.includes('game'))) {
+            return `🎮 <strong>How to Play Voyage Aeon:</strong><br><br>
+                    1. <strong>Read the story</strong> - Each scene describes your space adventure<br>
+                    2. <strong>Make choices</strong> - Select one of two options to shape your journey<br>
+                    3. <strong>Explore paths</strong> - Your decisions lead to different storylines<br>
+                    4. <strong>Reach endings</strong> - Complete your mission to see your cosmic destiny!<br><br>
+                    💡 <em>Tip: Try different choices to discover all 15+ unique endings!</em>`;
+        }
+
+        if (lowerInput.includes('control') || lowerInput.includes('button')) {
+            return `⚙️ <strong>Game Controls:</strong><br><br>
+                    🛑 <strong>Stop Mission</strong> - End current game early<br>
+                    🎵 <strong>Music Toggle</strong> - Turn background music on/off<br>
+                    🔄 <strong>Restart</strong> - Begin a new adventure<br>
+                    ❓ <strong>Help</strong> - View detailed game guide<br>
+                    ◀▶ <strong>Navigation</strong> - Go back/forward through scenes<br><br>
+                    ⌨️ <strong>Keyboard:</strong> Press Escape to close modals`;
+        }
+
+        // Story paths and choices
+        if (lowerInput.includes('path') || lowerInput.includes('story') || lowerInput.includes('choice')) {
+            return `🛤️ <strong>Story Paths in Voyage Aeon:</strong><br><br>
+                    🚀 <strong>Bold Explorer</strong> - Take direct action, investigate immediately<br>
+                    🤝 <strong>Diplomatic Pioneer</strong> - Prioritize communication and peace<br>
+                    🔬 <strong>Cautious Scientist</strong> - Analyze carefully before acting<br><br>
+                    Each path leads to different encounters, technologies, and endings!<br>
+                    Your choices determine which cosmic destiny awaits you.`;
+        }
+
+        // Achievements and endings
+        if (lowerInput.includes('achievement') || lowerInput.includes('ending') || lowerInput.includes('unlock')) {
+            return `🏆 <strong>Achievements & Endings:</strong><br><br>
+                    📊 <strong>15+ Unique Endings</strong> based on your choices<br>
+                    🎯 <strong>Path Achievements</strong> - Fearless Pioneer, Galactic Diplomat, etc.<br>
+                    ⚡ <strong>Choice Achievements</strong> - Quick Decision Maker, Peace Ambassador<br>
+                    💎 <strong>Ending Achievements</strong> - Bio-Tech Symbiosis, Cosmic Scholar<br><br>
+                    💡 <em>Try different story paths to unlock all achievements!</em>`;
+        }
+
+        // Navigation help
+        if (lowerInput.includes('navigation') || lowerInput.includes('back') || lowerInput.includes('previous')) {
+            return `🧭 <strong>Navigation System:</strong><br><br>
+                    ◀ <strong>Previous</strong> - Go back to earlier scenes you've visited<br>
+                    ▶ <strong>Next</strong> - Move forward if you've been there before<br>
+                    📊 <strong>Progress Bar</strong> - Shows your journey completion<br>
+                    🎯 <strong>Milestones</strong> - Track major story achievements<br><br>
+                    💡 <em>Navigation arrows appear at screen corners during gameplay!</em>`;
+        }
+
+        // Music and audio
+        if (lowerInput.includes('music') || lowerInput.includes('sound') || lowerInput.includes('audio')) {
+            return `🎵 <strong>Audio Features:</strong><br><br>
+                    🎼 <strong>Background Music</strong> - Immersive sci-fi soundtrack<br>
+                    ⌨️ <strong>Typing Sounds</strong> - Realistic text effects<br>
+                    🎬 <strong>Action Sounds</strong> - Audio feedback for choices<br>
+                    🏁 <strong>End Scene Audio</strong> - Special completion sounds<br><br>
+                    🔊 Use the Music Toggle button to control audio!`;
+        }
+
+        // Current game state help
+        if (lowerInput.includes('stuck') || lowerInput.includes('help') || lowerInput.includes('what') && lowerInput.includes('do')) {
+            const currentScene = this.currentScene;
+            if (currentScene === 'start') {
+                return `🚀 <strong>Ready to Begin!</strong><br><br>
+                        Click "Begin Mission" to start your space adventure!<br>
+                        You'll detect a mysterious signal and need to decide how to respond.`;
+            } else {
+                return `🎯 <strong>Current Situation:</strong><br><br>
+                        You're in the middle of your cosmic journey! Read the story text carefully and choose one of the two options presented.<br><br>
+                        💡 <em>Each choice shapes your destiny - there are no wrong answers, only different adventures!</em>`;
+            }
+        }
+
+        // Tips and strategies
+        if (lowerInput.includes('tip') || lowerInput.includes('strategy') || lowerInput.includes('advice')) {
+            return `💡 <strong>Pro Tips for Space Explorers:</strong><br><br>
+                    📖 <strong>Read Carefully</strong> - Story details hint at choice consequences<br>
+                    🔄 <strong>Experiment</strong> - Try different paths to see all content<br>
+                    🧭 <strong>Use Navigation</strong> - Go back to explore alternative choices<br>
+                    🎯 <strong>Collect Achievements</strong> - Each playthrough can unlock new ones<br>
+                    🎵 <strong>Enjoy the Journey</strong> - Focus on the story and immersion!`;
+        }
+
+        // Default responses for unrecognized input
+        const defaultResponses = [
+            `🤖 I'm here to help with your space adventure! Try asking about:<br>
+             • Game controls and how to play<br>
+             • Story paths and choices<br>
+             • Achievements and endings<br>
+             • Navigation and tips`,
+
+            `🌌 Interesting question! I can help you with:<br>
+             • Understanding game mechanics<br>
+             • Exploring different story paths<br>
+             • Getting achievement tips<br>
+             • Learning about controls`,
+
+            `🚀 I'm your AI assistant for this cosmic journey! Ask me about:<br>
+             • How to play the game<br>
+             • What the different buttons do<br>
+             • Story paths and endings<br>
+             • Tips for exploration`
+        ];
+
+        return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
     }
 
 

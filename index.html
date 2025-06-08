@@ -22,11 +22,13 @@
 <body>
     <div class="container">
         <header>
-            <h1> 🚀Voyage Aeon🪐</h1>
+            <h1>🚀 Voyage Aeon 🪐</h1>
+            <p class="subtitle">Interactive Space Adventure</p>
             <div class="controls">
                 <button id="stopBtn" class="stop-btn">🛑 Stop Mission</button>
                 <button id="musicToggle" class="music-btn">🎵 Music Loading...</button>
                 <button id="restartBtn" class="restart-btn">🔄 Restart</button>
+                <button id="helpBtn" class="help-btn">❓ Help</button>
             </div>
         </header>
 
@@ -57,7 +59,7 @@
 
             <div id="gameOverScreen" class="game-over hidden">
                 <div class="end-screen-header">
-                    <h2>🌟 Mission Complete 🌟</h2>
+                    <h2>🌟 Mission Complete! 🌟</h2>
                     <div id="endingBadge" class="ending-badge">
                         <span id="endingIcon">🏆</span>
                         <span id="endingTitle">Mission Accomplished</span>
@@ -65,7 +67,59 @@
                 </div>
 
                 <div class="end-screen-content">
-                    <p id="gameOverText">Thank you for playing!</p>
+                    <div class="mission-cards-container">
+                        <div class="mission-card journey-card">
+                            <div class="card-header">
+                                <span class="card-icon">🚀</span>
+                                <h3>Your Cosmic Journey</h3>
+                            </div>
+                            <div class="card-content">
+                                <ul id="journeyChoices" class="choice-list">
+                                    <!-- Choices will be populated by JavaScript -->
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="mission-card stats-card">
+                            <div class="card-header">
+                                <span class="card-icon">📊</span>
+                                <h3>Mission Statistics</h3>
+                            </div>
+                            <div class="card-content">
+                                <div class="stat-item">
+                                    <span class="stat-icon">🎯</span>
+                                    <span class="stat-label">Scenes Visited</span>
+                                    <span id="scenesVisited" class="stat-value">5</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon">⚡</span>
+                                    <span class="stat-label">Decisions Made</span>
+                                    <span id="decisionsCount" class="stat-value">4</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-icon">🛤️</span>
+                                    <span class="stat-label">Mission Duration</span>
+                                    <span id="missionDuration" class="stat-value">03:10</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mission-outcome-card">
+                        <div class="outcome-header">
+                            <span id="outcomeIcon" class="outcome-icon">🏆</span>
+                            <div class="outcome-text">
+                                <h3 id="outcomeTitle">Mission Accomplished</h3>
+                                <p id="outcomeDescription">You have successfully completed your cosmic journey!</p>
+                            </div>
+                        </div>
+                        <div class="achievement-badges" id="achievementBadges">
+                            <!-- Achievement badges will be populated by JavaScript -->
+                        </div>
+                        <div class="outcome-actions">
+                            <button onclick="game.downloadReport()" class="download-report-btn">📄 Download Mission Report</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="end-screen-actions">
@@ -74,11 +128,156 @@
                     <button onclick="game.viewStats()" class="choice-btn secondary-btn">📊 View Statistics</button>
                 </div>
             </div>
+
+            <!-- Help Modal -->
+            <div id="helpModal" class="help-modal hidden">
+                <div class="help-overlay"></div>
+                <div class="help-content">
+                    <div class="help-header">
+                        <h2>🚀 Mission Guide & Help 🌌</h2>
+                        <button id="closeHelpBtn" class="close-help-btn">✕</button>
+                    </div>
+
+                    <div class="help-body">
+                        <div class="help-section">
+                            <h3>🎮 How to Play</h3>
+                            <ul>
+                                <li><strong>Read the Story:</strong> Each scene presents you with a narrative describing your space adventure</li>
+                                <li><strong>Make Choices:</strong> Select one of two options to determine your path through the galaxy</li>
+                                <li><strong>Explore Paths:</strong> Your choices lead to different storylines and unique endings</li>
+                                <li><strong>Complete Mission:</strong> Reach one of 15+ different endings based on your decisions</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>🎵 Audio Controls</h3>
+                            <ul>
+                                <li><strong>Music Toggle:</strong> Click the 🎵 button to turn background music on/off</li>
+                                <li><strong>Sound Effects:</strong> Enjoy typing sounds and action feedback during gameplay</li>
+                                <li><strong>Volume:</strong> Audio is automatically balanced for the best experience</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>🧭 Navigation</h3>
+                            <ul>
+                                <li><strong>Previous/Next:</strong> Use arrow buttons at the bottom corners to revisit scenes</li>
+                                <li><strong>Progress Bar:</strong> Track your journey with the progress indicator found at the bottom of the screen</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>🌟 Story Paths</h3>
+                            <ul>
+                                <li><strong>Explorer Path:</strong> Bold, adventurous choices (Purple theme)</li>
+                                <li><strong>Diplomatic Path:</strong> Peaceful, communication-focused choices (Green theme)</li>
+                                <li><strong>Scientist Path:</strong> Research and analysis-focused choices (Orange theme)</li>
+                                <li><strong>Multiple Endings:</strong> Over 15 unique endings based on your choices</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>🎯 Game Features</h3>
+                            <ul>
+                                <li><strong>Visual Feedback:</strong> See your astronaut perform actions when you make choices</li>
+                                <li><strong>Mission Report:</strong> Get a detailed summary of your choices at the end</li>
+                                <li><strong>Restart Anytime:</strong> Use the 🔄 button to start a new adventure</li>
+                                <li><strong>Stop Mission:</strong> Use the 🛑 button to end the current game</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>⌨️ Keyboard Shortcuts</h3>
+                            <ul>
+                                <li><strong>Escape:</strong> Close this help modal</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>💡 Tips for Success</h3>
+                            <ul>
+                                <li><strong>Read Carefully:</strong> Each choice leads to different story branches</li>
+                                <li><strong>Experiment:</strong> Try different paths to discover all endings</li>
+                                <li><strong>Use Navigation:</strong> Go back to explore alternative choices</li>
+                                <li><strong>Enjoy the Journey:</strong> Focus on the story and immerse yourself in the adventure</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>🔧 Troubleshooting</h3>
+                            <ul>
+                                <li><strong>Stuck on Scene:</strong> Use the restart button to begin a fresh adventure</li>
+                                <li><strong>Navigation Problems:</strong> Previous/Next buttons are only active when applicable</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="help-footer">
+                        <button id="closeHelpFooterBtn" class="choice-btn primary-btn">🚀 Start Playing!</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Assistant Side Panel -->
+            <div id="aiAssistantPanel" class="ai-assistant-panel">
+                <div class="ai-panel-toggle" id="aiPanelToggle">
+                    <span class="ai-toggle-icon">🤖</span>
+                    <span class="ai-toggle-text">AI</span>
+                </div>
+
+                <div class="ai-panel-content" id="aiPanelContent">
+                    <div class="ai-panel-header">
+                        <div class="ai-panel-title">
+                            <span class="ai-panel-icon">🤖</span>
+                            <h3>AEON Chatbot</h3>
+                            <span class="ai-panel-status">Online</span>
+                        </div>
+                        <button id="minimizeAiBtn" class="minimize-ai-btn">−</button>
+                    </div>
+
+                    <div class="ai-panel-messages" id="aiPanelMessages">
+                        <div class="message bot-message">
+                            <div class="message-avatar">🤖</div>
+                            <div class="message-content">
+                                <p>Hello! I'm AEON, your chatbot assistant. I can help with:</p>
+                                <ul>
+                                    <li>🎮 Game controls</li>
+                                    <li>📖 Story guidance</li>
+                                    <li>🎯 Achievement tips</li>
+                                    <li>🚀 Navigation help</li>
+                                </ul>
+                                <p>What would you like to know?</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ai-panel-quick-actions">
+                        <button class="quick-action-btn" data-question="How do I play the game?">🎮 How to Play</button>
+                        <button class="quick-action-btn" data-question="What are the different story paths?">🛤️ Story Paths</button>
+                        <button class="quick-action-btn" data-question="How do I get achievements?">🏆 Achievements</button>
+                        <button class="quick-action-btn" data-question="What do the controls do?">⚙️ Controls</button>
+                    </div>
+
+                    <div class="ai-panel-input-area">
+                        <input type="text" id="aiPanelInput" placeholder="Ask me anything..." maxlength="200">
+                        <button id="sendAiBtn" class="send-ai-btn">
+                            <span class="send-icon">🚀</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <footer>
             <div class="progress-bar">
                 <div id="progressFill" class="progress-fill"></div>
+                <div class="progress-milestones">
+                    <div class="milestone" data-step="3">🚀</div>
+                    <div class="milestone" data-step="6">🛸</div>
+                    <div class="milestone" data-step="9">🌌</div>
+                    <div class="milestone" data-step="12">⭐</div>
+                    <div class="milestone" data-step="15">🏆</div>
+                </div>
             </div>
             <div id="pathIndicator" class="path-indicator">
                 <span id="pathIcon">🧭</span>
