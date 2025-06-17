@@ -3292,113 +3292,161 @@ Play your own space adventure at: ${window.location.href}
      */
     getChatbotResponse(input) {
         const lowerInput = input.toLowerCase();
+        let responseFound = false;
+        let botResponse = '';
 
-        // Game controls and mechanics
-        if (lowerInput.includes('how') && (lowerInput.includes('play') || lowerInput.includes('game'))) {
-            return `🎮 <strong>How to Play Voyage Aeon:</strong><br><br>
+        // Define a map of common questions/keywords to responses
+        const responseMap = [
+            {
+                // Game controls and mechanics
+                regex: /\b(how to play|game mechanics|controls|buttons|gameplay)\b/i,
+                response: `🎮 <strong>How to Play Voyage Aeon:</strong><br><br>
                     1. <strong>Read the story</strong> - Each scene describes your space adventure<br>
                     2. <strong>Make choices</strong> - Select one of two options to shape your journey<br>
                     3. <strong>Explore paths</strong> - Your decisions lead to different storylines<br>
                     4. <strong>Reach endings</strong> - Complete your mission to see your cosmic destiny!<br><br>
-                    💡 <em>Tip: Try different choices to discover all 15+ unique endings!</em>`;
-        }
-
-        if (lowerInput.includes('control') || lowerInput.includes('button')) {
-            return `⚙️ <strong>Game Controls:</strong><br><br>
+                    💡 <em>Tip: Try different choices to discover all 15+ unique endings!</em>`
+            },
+            {
+                // Detailed controls and buttons
+                regex: /\b(what do the buttons do|control list|button functions|game controls|stop mission|music toggle|restart button|help button|navigation buttons)\b/i,
+                response: `⚙️ <strong>Game Controls:</strong><br><br>
                     🛑 <strong>Stop Mission</strong> - End current game early<br>
                     🎵 <strong>Music Toggle</strong> - Turn background music on/off<br>
                     🔄 <strong>Restart</strong> - Begin a new adventure<br>
                     ❓ <strong>Help</strong> - View detailed game guide<br>
                     ◀▶ <strong>Navigation</strong> - Go back/forward through scenes<br><br>
-                    ⌨️ <strong>Keyboard:</strong> Press Escape to close modals`;
-        }
-
-        // Story paths and choices
-        if (lowerInput.includes('path') || lowerInput.includes('story') || lowerInput.includes('choice')) {
-            return `🛤️ <strong>Story Paths in Voyage Aeon:</strong><br><br>
+                    ⌨️ <strong>Keyboard:</strong> Press Escape to close modals`
+            },
+            {
+                // Story paths and choices
+                regex: /\b(story path|different paths|choices|what happens if|branching story|alternate endings)\b/i,
+                response: `🛤️ <strong>Story Paths in Voyage Aeon:</strong><br><br>
                     🚀 <strong>Bold Explorer</strong> - Take direct action, investigate immediately<br>
                     🤝 <strong>Diplomatic Pioneer</strong> - Prioritize communication and peace<br>
                     🔬 <strong>Cautious Scientist</strong> - Analyze carefully before acting<br><br>
                     Each path leads to different encounters, technologies, and endings!<br>
-                    Your choices determine which cosmic destiny awaits you.`;
-        }
-
-        // Achievements and endings
-        if (lowerInput.includes('achievement') || lowerInput.includes('ending') || lowerInput.includes('unlock')) {
-            return `🏆 <strong>Achievements & Endings:</strong><br><br>
+                    Your choices determine which cosmic destiny awaits you. Your previous choices are important and will be reflected on the mission report.`
+            },
+            {
+                // Achievements and endings
+                regex: /\b(achievements|endings|unlock|how many endings|special endings|trophies)\b/i,
+                response: `🏆 <strong>Achievements & Endings:</strong><br><br>
                     📊 <strong>15+ Unique Endings</strong> based on your choices<br>
                     🎯 <strong>Path Achievements</strong> - Fearless Pioneer, Galactic Diplomat, etc.<br>
                     ⚡ <strong>Choice Achievements</strong> - Quick Decision Maker, Peace Ambassador<br>
                     💎 <strong>Ending Achievements</strong> - Bio-Tech Symbiosis, Cosmic Scholar<br><br>
-                    💡 <em>Try different story paths to unlock all achievements!</em>`;
-        }
-
-        // Navigation help
-        if (lowerInput.includes('navigation') || lowerInput.includes('back') || lowerInput.includes('previous')) {
-            return `🧭 <strong>Navigation System:</strong><br><br>
+                    💡 <em>Try different story paths to unlock all achievements!</em>`
+            },
+            {
+                // Navigation help
+                regex: /\b(navigation|go back|previous scene|next scene|progress bar|milestones)\b/i,
+                response: `🧭 <strong>Navigation System:</strong><br><br>
                     ◀ <strong>Previous</strong> - Go back to earlier scenes you've visited<br>
                     ▶ <strong>Next</strong> - Move forward if you've been there before<br>
                     📊 <strong>Progress Bar</strong> - Shows your journey completion<br>
                     🎯 <strong>Milestones</strong> - Track major story achievements<br><br>
-                    💡 <em>Navigation arrows appear at screen corners during gameplay!</em>`;
-        }
-
-        // Music and audio
-        if (lowerInput.includes('music') || lowerInput.includes('sound') || lowerInput.includes('audio')) {
-            return `🎵 <strong>Audio Features:</strong><br><br>
+                    💡 <em>Navigation arrows appear at screen corners during gameplay!</em>`
+            },
+            {
+                // Music and audio
+                regex: /\b(music|sound|audio|sound effects|background music|typing sounds)\b/i,
+                response: `🎵 <strong>Audio Features:</strong><br><br>
                     🎼 <strong>Background Music</strong> - Immersive sci-fi soundtrack<br>
                     ⌨️ <strong>Typing Sounds</strong> - Realistic text effects<br>
                     🎬 <strong>Action Sounds</strong> - Audio feedback for choices<br>
                     🏁 <strong>End Scene Audio</strong> - Special completion sounds<br><br>
-                    🔊 Use the Music Toggle button to control audio!`;
-        }
-
-        // Current game state help
-        if (lowerInput.includes('stuck') || lowerInput.includes('help') || lowerInput.includes('what') && lowerInput.includes('do')) {
-            const currentScene = this.currentScene;
-            if (currentScene === 'start') {
-                return `🚀 <strong>Ready to Begin!</strong><br><br>
-                        Click "Begin Mission" to start your space adventure!<br>
-                        You'll detect a mysterious signal and need to decide how to respond.`;
-            } else {
-                return `🎯 <strong>Current Situation:</strong><br><br>
-                        You're in the middle of your cosmic journey! Read the story text carefully and choose one of the two options presented.<br><br>
-                        💡 <em>Each choice shapes your destiny - there are no wrong answers, only different adventures!</em>`;
-            }
-        }
-
-        // Tips and strategies
-        if (lowerInput.includes('tip') || lowerInput.includes('strategy') || lowerInput.includes('advice')) {
-            return `💡 <strong>Pro Tips for Space Explorers:</strong><br><br>
+                    🔊 Use the Music Toggle button to control audio!`
+            },
+            {
+                // Tips and strategies
+                regex: /\b(tip|strategy|advice|suggestions|how to win|best way to play)\b/i,
+                response: `💡 <strong>Pro Tips for Space Explorers:</strong><br><br>
                     📖 <strong>Read Carefully</strong> - Story details hint at choice consequences<br>
                     🔄 <strong>Experiment</strong> - Try different paths to see all content<br>
                     🧭 <strong>Use Navigation</strong> - Go back to explore alternative choices<br>
                     🎯 <strong>Collect Achievements</strong> - Each playthrough can unlock new ones<br>
-                    🎵 <strong>Enjoy the Journey</strong> - Focus on the story and immersion!`;
-        }
-
-        // Default responses for unrecognized input
-        const defaultResponses = [
-            `🤖 I'm here to help with your space adventure! Try asking about:<br>
-             • Game controls and how to play<br>
-             • Story paths and choices<br>
-             • Achievements and endings<br>
-             • Navigation and tips`,
-
-            `🌌 Interesting question! I can help you with:<br>
-             • Understanding game mechanics<br>
-             • Exploring different story paths<br>
-             • Getting achievement tips<br>
-             • Learning about controls`,
-
-            `🚀 I'm your AI assistant for this cosmic journey! Ask me about:<br>
-             • How to play the game<br>
-             • What the different buttons do<br>
-             • Story paths and endings<br>
-             • Tips for exploration`
+                    🎵 <strong>Enjoy the Journey</strong> - Focus on the story and immersion!`
+            },
+            {
+                // General greetings
+                regex: /\b(hello|hi|hey|greetings)\b/i,
+                response: `Greetings, space explorer! How can I assist you on your journey through the cosmos?`
+            },
+            {
+                // Asking about the AI
+                regex: /\b(who are you|what are you|your purpose|are you an ai)\b/i,
+                response: `I am the AI Assistant of the Voyage Aeon starship, designed to help you navigate your interactive story adventure. Ask me anything about the game!`
+            },
+            {
+                // Thanks/gratitude
+                regex: /\b(thank you|thanks|good job|appreciate it)\b/i,
+                response: `You're welcome! May your voyage be prosperous. Let me know if you have more questions.`
+            },
+            {
+                // Random facts about space/science (placeholder - could be expanded)
+                regex: /\b(tell me about space|space facts|science fact)\b/i,
+                response: `Did you know that there are more stars in the universe than grains of sand on all the beaches on Earth? The cosmos is vast and full of wonders!`
+            }
         ];
 
-        return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+        // Check for specific context-aware responses first
+        if (lowerInput.includes('stuck') || lowerInput.includes('help') || (lowerInput.includes('what') && lowerInput.includes('do'))) {
+            const currentScene = this.currentScene;
+            if (currentScene === 'start') {
+                botResponse = `🚀 <strong>Ready to Begin!</strong><br><br>
+                        Click "Begin Mission" to start your space adventure!<br>
+                        You'll detect a mysterious signal and need to decide how to respond.`;
+            } else {
+                botResponse = `🎯 <strong>Current Situation:</strong><br><br>
+                        You're in the middle of your cosmic journey! Read the story text carefully and choose one of the two options presented.<br><br>
+                        💡 <em>Each choice shapes your destiny - there are no wrong answers, only different adventures!</em>`;
+            }
+            responseFound = true;
+        }
+
+        if (!responseFound) {
+            // Iterate through the response map to find a match
+            for (const entry of responseMap) {
+                if (entry.regex.test(lowerInput)) {
+                    botResponse = entry.response;
+                    responseFound = true;
+                    break; // Exit loop once a match is found
+                }
+            }
+        }
+
+        // If no specific or context-aware response was found, handle general queries
+        if (!responseFound) {
+            // Check for general "what is X" or "tell me about Y" patterns
+            if (/\b(what is|what's|tell me about|explain|who is|who's|where is|where's|how does|how do|why is|why does|when is|when's)\b/i.test(lowerInput)) {
+                botResponse = `🌌 That's an interesting question! My knowledge is primarily focused on the Voyage Aeon game. For broader topics like "${input}", I'd need to access the galactic data-net, which is currently offline. Can I help you with anything about your space mission?`;
+            } else {
+                // Default responses for unrecognized input (if not a general question pattern)
+                const defaultResponses = [
+                    `🤖 I'm here to help with your space adventure! Try asking about:<br>
+                     • Game controls and how to play<br>
+                     • Story paths and choices<br>
+                     • Achievements and endings<br>
+                     • Navigation and tips`,
+
+                    `🌌 Interesting question! I can help you with:<br>
+                     • Understanding game mechanics<br>
+                     • Exploring different story paths<br>
+                     • Getting achievement tips<br>
+                     • Learning about controls`,
+
+                    `🚀 I'm your AI assistant for this cosmic journey! Ask me about:<br>
+                     • How to play the game<br>
+                     • What the different buttons do<br>
+                     • Story paths and endings<br>
+                     • Tips for exploration`
+                ];
+                botResponse = defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+            }
+        }
+
+        return botResponse;
     }
 
 
