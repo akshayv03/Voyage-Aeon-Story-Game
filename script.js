@@ -975,6 +975,28 @@ class VoyageAeonStory {
         // Record mission end time
         this.missionEndTime = Date.now();
 
+        // Set appropriate header text based on how the game ended
+        const gameOverHeader = document.querySelector('#gameOverScreen h2');
+        const endingTitle = document.getElementById('endingTitle');
+
+        if (this.finalEnding === 'Mission Terminated by User') {
+            // Game was stopped by user - keep the stopped message
+            if (gameOverHeader) {
+                gameOverHeader.textContent = '🛑 Mission Stopped 🛑';
+            }
+            if (endingTitle) {
+                endingTitle.textContent = 'Mission Terminated';
+            }
+        } else {
+            // Game ended naturally - show completion message
+            if (gameOverHeader) {
+                gameOverHeader.textContent = '🌟 Mission Complete! 🌟';
+            }
+            if (endingTitle) {
+                endingTitle.textContent = 'Mission Accomplished';
+            }
+        }
+
         document.querySelector('.story-container').classList.add('hidden');
         this.gameOverScreen.classList.remove('hidden');
         this.storyProgress = this.maxProgress;
